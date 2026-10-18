@@ -48,7 +48,7 @@ export class Levels {
     this.spawned = 0;
     this.nextAt = 3;
     this.bossNode = null;
-    this.stats = { level: n, banished: 0, lost: 0, hops: 0, fastestCleanseMs: 0, spreadsAllowed: 0, boss: !!this.cfg.boss };
+    this.stats = { level: n, banished: 0, lost: 0, hops: 0, spells: 0, fastestCleanseMs: 0, spreadsAllowed: 0, boss: !!this.cfg.boss };
     this.infection.reset(this.cfg);
     this.desktop.closeAll();
     this.fs.reset();
@@ -67,6 +67,7 @@ export class Levels {
     }
     this.banner(this.cfg.name, this.cfg.boss ? '#ff7a1a' : '#b48cff');
     this.renderHud();
+    this.bus.emit('level-start', this);
   }
 
   banner(text, color) {
@@ -107,7 +108,8 @@ export class Levels {
       return;
     }
     if (this.state !== 'playing') return;
-    this.timer += dt;
+    // Frozen demons stop the clock for new arrivals too.
+    if (!this.infection.frozen) this.timer += dt;
     if (this.tutorial) {
       // The tutorial demon arrives on its own, on a file in plain sight.
       if (this.spawned < 1 && this.timer >= 1 && this.infection.possess({ rootOnly: true })) this.spawned = 1;
@@ -252,12 +254,13 @@ export class Levels {
       mage.say(`Direct hit! The ${ASSETS.boss.label} jumped back out. ${node.bossHp} more!`, { priority: 'high', mood: 'proud' });
       this.refreshTask();
     });
-    bus.on('banished', ({ node, name, ms }) => {
+    bus.on('spell-cast', () => { if (this.stats) this.stats.spells++; });
+    bus.on('banished', ({ node, name, ms, spell }) => {
       const s = this.stats;
       s.banished++;
-      s.fastestCleanseMs = s.fastestCleanseMs ? Math.min(s.fastestCleanseMs, ms) : ms;
+      if (!spell) s.fastestCleanseMs = s.fastestCleanseMs ? Math.min(s.fastestCleanseMs, ms) : ms;
       this.renderHud();
-      mage.say(node.boss ? `The ${ASSETS.boss.label} is finished! Magnificent!` : `Splendid! ${name} is gone.`, { priority: 'high', mood: 'proud' });
+      if (!spell || node.boss) mage.say(node.boss ? `The ${ASSETS.boss.label} is finished! Magnificent!` : `Splendid! ${name} is gone.`, { priority: 'high', mood: 'proud' });
       this.refreshTask();
     });
     bus.on('clean-in-cauldron', () => mage.say('That one is clean, do not waste the brew! Grab the shaking green one.', { priority: 'high' }));

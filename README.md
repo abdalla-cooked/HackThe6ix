@@ -14,6 +14,8 @@ Demons are possessing the files on your desktop. You grab the possessed files wi
 | Thumbs up, held 1 s | Start the next level (or retry after a loss) |
 | Peace sign, held 1.2 s | Pause or resume |
 | Open your mouth for 1 s | Banshee scream: every infection drops by 10 (20 s cooldown) |
+| Fist, Point, Palm, Horns (from level 3) | **Fireball**: burns every demon on screen |
+| Horns, Palm, Point, Fist (from level 3) | **Freeze**: every demon stops for 8 s |
 
 The loop:
 
@@ -24,16 +26,27 @@ The loop:
 
 Levels get harder in three ways: more files and demons, faster corruption, and from level 2 on, possessed files **hop** to a new spot if you leave them alone (hovering over a file holds it still). Level 3 is a **boss fight**: the Mimic King possesses `MIMIC.exe`, jumps back out of the cauldron twice and only goes down on the third drop. If he turns to stone, you lose the level. Every third level after that has a boss.
 
+### Hand-sign spells
+
+From level 3 you can chain hand signs, ninja style. Hold each sign for half a second, and make the next one within 2.5 seconds:
+
+- **Fist, Point, Palm, Horns** (horns = index and pinky up) casts a **Fireball**. The screen darkens, each sign lights up on the spell bar as you lock it in, a fireball charges in your hand, flies to the middle of the screen and explodes. Every possessed file burns clean, demons still in the air burn up, and the boss takes one hit.
+- **The same signs backwards** casts **Freeze**. Frost creeps in from the edges, every demon is locked in ice for 8 seconds, and nothing spreads, hops or arrives until it thaws. You can still drag frozen files into the cauldron.
+
+A cast needs a full mana bar. It starts full each level and refills after 4 cauldron banishes, so you get about one spell per wave. A wrong sign in the middle of a chain fizzles it.
+
 Morwen the Mage walks you through a tutorial, calls out what is happening and tracks every monster you meet in her bestiary. The art is Kenney's Tiny Dungeon pixel pack, with lightning, drifting fog, flickering torches and a spark trail behind your hand.
 
-No camera? The whole game works with a mouse: left drag is a pinch, hold P for an open palm, T for a thumbs up and V for the peace sign.
+No camera? The whole game works with a mouse: left drag is a pinch, hold P for an open palm, T for a thumbs up and V for the peace sign. For spells, hold F (fist), D (point), P (palm) and H (horns) in order.
+
+Add `?level=3` to the URL to jump straight to a level, for example to show off the boss and the spells.
 
 ## How Gemma 4 is used
 
 Gemma 4 runs through the Gemini API, and only on single webcam snapshots, never on video frames. Hand and face tracking need about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
 
 - **Possession.** When a demon lands in a file, the app sends Gemma a mirrored 384x288 snapshot and the file name. Gemma replies with a demon name (often a pun on the file) and a taunt that mentions something it can actually see, like your hoodie or the lamp behind you.
-- **Level judgment.** When you clear a level, Gemma gets a snapshot and your stats (banished, lost, how often demons hopped away, fastest save, boss beaten) and gives you a witch rank and a verdict, shown on the level-up screen.
+- **Level judgment.** When you clear a level, Gemma gets a snapshot and your stats (banished, lost, how often demons hopped away, spells cast, fastest save, boss beaten) and gives you a witch rank and a verdict, shown on the level-up screen.
 
 The game never waits for Gemma. A demon starts as "???" and its name fills in when the answer arrives. With no key, or if a call fails, the app uses pre-written lines and shows a "backup scrolls" badge.
 
@@ -84,6 +97,7 @@ js/fs.js          in-memory file system
 js/desktop.js     files, windows, drag and drop, cauldron
 js/infection.js   possession, corruption, spread, hopping, boss, banish blast
 js/levels.js      level table, tutorial, boss spawn, level-up screen, mage lines
+js/spells.js      hand-sign chains, mana, fireball and freeze
 js/mage.js        speech queue, task box, bestiary
 js/gemma.js       Gemini API client, snapshots, prompts, fallbacks
 js/fx.js          particles, rings, lightning, flashes, screen shake

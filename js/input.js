@@ -22,6 +22,21 @@ function isPointing(lm) {
   return ext(8, 6) && curled(12, 10) && curled(16, 14) && curled(20, 18);
 }
 
+// Index and pinky out, middle and ring curled: the "horns" spell sign.
+function isHorns(lm) {
+  const w = lm[0];
+  const ext = (tip, pip) => dist(lm[tip], w) > dist(lm[pip], w) * 1.1;
+  const curled = (tip, pip) => dist(lm[tip], w) < dist(lm[pip], w) * 1.05;
+  return ext(8, 6) && ext(20, 18) && curled(12, 10) && curled(16, 14);
+}
+
+// Index and middle fingertips folded into the palm. A fist can bring the thumb
+// near the index tip, so this keeps a fist from starting a pinch.
+function isFist(lm) {
+  const w = lm[0];
+  return dist(lm[8], w) < dist(lm[6], w) * 0.85 && dist(lm[12], w) < dist(lm[10], w) * 0.85;
+}
+
 export class Input {
   constructor(tracker) {
     this.tracker = tracker;
@@ -78,14 +93,15 @@ export class Input {
       this.tip.y += (tip.y - this.tip.y) * k;
 
       const ratio = dist(lm[4], lm[8]) / Math.max(1e-4, dist(lm[0], lm[9]));
-      if (this.pinchOn ? ratio > PINCH_OFF : ratio < PINCH_ON) this.pinchOn = !this.pinchOn;
+      if (this.pinchOn ? ratio > PINCH_OFF : ratio < PINCH_ON && !isFist(lm)) this.pinchOn = !this.pinchOn;
       pinch = this.pinchOn;
 
       // Debounce once per new detection, not per render frame.
       if (h.ts !== this.lastHandTs) {
         this.lastHandTs = h.ts;
         let label = h.score > 0.6 ? h.label : 'None';
-        if (isPointing(lm)) label = 'Pointing_Up';
+        if (label === 'ILoveYou' || isHorns(lm)) label = 'Horns';
+        else if (isPointing(lm)) label = 'Pointing_Up';
         if (label === this.cand) this.candN++;
         else { this.cand = label; this.candN = 1; }
         if (this.candN >= STABLE_FRAMES) this.handGesture = label;
@@ -104,6 +120,7 @@ export class Input {
         : k.has('f') ? 'Closed_Fist'
         : k.has('t') ? 'Thumb_Up'
         : k.has('v') ? 'Victory'
+        : k.has('h') ? 'Horns'
         : 'None';
     }
 

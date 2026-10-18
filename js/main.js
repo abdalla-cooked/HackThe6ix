@@ -5,6 +5,7 @@ import { FS } from './fs.js';
 import { Desktop } from './desktop.js';
 import { Infection } from './infection.js';
 import { Levels } from './levels.js';
+import { Spells } from './spells.js';
 import { Mage } from './mage.js';
 import { Gemma } from './gemma.js';
 import { fx } from './fx.js';
@@ -13,7 +14,7 @@ const $ = s => document.querySelector(s);
 const DWELL_MS = 600;
 const NEXT_HOLD_MS = 1000;
 const PAUSE_HOLD_MS = 1200;
-const TRAIL_COLORS = { Pinch: '#e4d4ff', Open_Palm: '#6dff6d', Thumb_Up: '#ffd36b', Victory: '#9fb8ff' };
+const TRAIL_COLORS = { Pinch: '#e4d4ff', Open_Palm: '#6dff6d', Thumb_Up: '#ffd36b', Victory: '#9fb8ff', Closed_Fist: '#ff5a1a', Horns: '#ff5a1a' };
 
 const bus = {
   handlers: {},
@@ -37,6 +38,7 @@ const overlay = {
   btn: lu.querySelector('.lu-btn'), hint: lu.querySelector('.lu-hint'), thumb: lu.querySelector('.lu-thumb'),
 };
 const levels = new Levels({ fs, desktop, infection, mage, gemma, bus, hud, overlay });
+const spells = new Spells({ fs, desktop, infection, levels, mage, bus });
 
 let started = false;
 let paused = false;
@@ -137,7 +139,7 @@ function frame(now) {
     if (s.pinchEnd) desktop.pinchEnd(s, target);
 
     // Open-palm dwell on anything with data-dwell.
-    if (s.gesture === 'Open_Palm' && !desktop.drag) {
+    if (s.gesture === 'Open_Palm' && !desktop.drag && !spells.chanting) {
       const t = target?.closest('[data-dwell]') || null;
       if (t !== dwell.el) dwell = { el: t, ms: 0, fired: false };
       else if (t && !dwell.fired) {
@@ -186,6 +188,7 @@ function frame(now) {
       } else {
         scream.held = 0;
       }
+      progress = Math.max(progress, spells.update(s, dt));
       infection.update(dt);
       levels.update(dt);
       desktop.updateFolderGlow();
@@ -207,7 +210,9 @@ requestAnimationFrame(frame);
 function begin() {
   $('#start').hidden = true;
   started = true;
-  levels.start($('#chk-skip').checked ? 1 : 0);
+  // ?level=3 jumps straight to a level, handy for demos.
+  const jump = parseInt(new URLSearchParams(location.search).get('level'), 10);
+  levels.start(jump >= 0 ? jump : $('#chk-skip').checked ? 1 : 0);
 }
 
 $('#btn-camera').addEventListener('click', async () => {
@@ -268,4 +273,4 @@ dialog.addEventListener('close', () => {
   if (dialog.returnValue === 'save') gemma.save(keyInput.value, modelSelect.value);
 });
 
-window.app = { fs, desktop, infection, levels, mage, gemma, input, tracker, bus };
+window.app = { fs, desktop, infection, levels, spells, mage, gemma, input, tracker, bus };

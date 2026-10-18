@@ -146,7 +146,7 @@ export class Gemma {
     const text = await this.request(
       `You are Morwen, a wise old mage judging an apprentice exorcist after level ${stats.level}. ` +
       `Stats: ${stats.banished} demons banished, ${stats.lost} files lost, ${stats.hops} times a demon hopped away, ` +
-      `fastest save ${stats.fastestCleanseMs} ms${stats.boss ? ', and they beat the Mimic King boss' : ''}. Look at their photo. Reply in exactly this format:\n` +
+      `${stats.spells} hand-sign spells cast, fastest save ${stats.fastestCleanseMs} ms${stats.boss ? ', and they beat the Mimic King boss' : ''}. Look at their photo. Reply in exactly this format:\n` +
       `RANK: <witch or wizard title, max 6 words>\n` +
       `VERDICT: <max 30 words, warm and spooky, mention something visible in the photo>`, { important: true });
     const rank = tidy(text?.match(/RANK:\s*(.+)/i)?.[1]);

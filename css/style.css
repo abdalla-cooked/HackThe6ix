@@ -474,3 +474,58 @@ button.link { background: none !important; border: 0 !important; color: var(--pu
 .lu-alt { display: block; margin-top: 8px; color: var(--muted); }
 #levelup.fail .levelup-card { border-color: var(--blood); box-shadow: 0 0 60px rgba(255, 92, 108, 0.3); }
 #levelup.fail .lu-title { color: var(--blood); text-shadow: 0 0 24px rgba(255, 92, 108, 0.6); }
+
+/* ---------- hand-sign spells ---------- */
+#chant {
+  position: fixed; right: calc(var(--mage-w) + 18px); bottom: 18px; z-index: 21; width: 340px;
+  padding: 10px 12px; border-radius: 16px; pointer-events: none;
+  background: rgba(14, 8, 28, 0.85); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+#chant.dir-fire { border-color: #ff8a2a; box-shadow: 0 0 40px rgba(255, 120, 40, 0.55); }
+#chant.dir-ice { border-color: #9fe0ff; box-shadow: 0 0 40px rgba(140, 210, 255, 0.55); }
+.chant-row { display: flex; align-items: center; justify-content: space-between; }
+.chant-arrow { flex: 1; height: 2px; margin: 0 4px 16px; background: var(--line); }
+.sign { --p: 0; position: relative; display: grid; justify-items: center; gap: 2px; font-size: 11px; color: var(--muted); transition: opacity 0.3s; }
+#chant:not(.ready) .sign { opacity: 0.4; }
+.sign .gicon { width: 46px; height: 46px; transition: transform 0.2s, background 0.2s, box-shadow 0.2s; }
+.sign .hand { width: 32px; height: 32px; }
+.sign-ring { position: absolute; top: -4px; left: 50%; width: 54px; height: 54px; margin-left: -27px; border-radius: 50%;
+  background: conic-gradient(#ffd36b calc(var(--p) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 23px, #000 24px); mask: radial-gradient(circle, transparent 23px, #000 24px); }
+.sign.next .gicon { animation: beckon 0.6s ease-in-out infinite alternate; }
+@keyframes beckon { to { transform: scale(1.12); } }
+#chant.dir-fire .sign.done .gicon { background: #ff6a1a; color: #fff3d0; box-shadow: 0 0 22px #ff8a2a; transform: scale(1.15); }
+#chant.dir-ice .sign.done .gicon { background: #3aa0e0; color: #f0fbff; box-shadow: 0 0 22px #9fe0ff; transform: scale(1.15); }
+#chant.dir-fire .sign.done small { color: #ffb340; } #chant.dir-ice .sign.done small { color: #9fe0ff; }
+.chant-label { margin-top: 6px; text-align: center; font-size: 13px; color: var(--muted); }
+.fire-word { color: #ffb340; } .ice-word { color: #9fe0ff; }
+.mana { position: relative; height: 16px; margin-top: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.mana-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #6a3dd8, #b48cff); transition: width 0.4s; }
+#chant.ready .mana-fill { background: linear-gradient(90deg, #ff5a1a, #ffd36b, #9fe0ff); animation: brew 1.2s ease-in-out infinite; }
+.mana-text { position: relative; display: block; text-align: center; font-size: 11px; line-height: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; }
+.hand .thumbx { fill: #e0b48c; stroke: #a0704a; stroke-width: 1; }
+.spellcard { border-color: #ff8a2a; background: rgba(255, 120, 40, 0.12); }
+.spellcard .gicon { background: #5a2008; }
+
+#dim, #frost { position: fixed; top: 0; left: 0; right: var(--mage-w); bottom: 0; pointer-events: none; opacity: 0; }
+#dim { z-index: 19; background: radial-gradient(ellipse at center, rgba(10, 0, 20, 0.5), rgba(0, 0, 0, 0.95)); transition: opacity 0.35s; }
+#frost {
+  z-index: 47; transition: opacity 0.8s, box-shadow 1.8s ease-out;
+  box-shadow: inset 0 0 0 0 rgba(225, 248, 255, 0);
+  background:
+    radial-gradient(ellipse at center, transparent 45%, rgba(170, 220, 255, 0.28) 72%, rgba(225, 248, 255, 0.8) 100%),
+    repeating-conic-gradient(from 10deg at 50% 50%, rgba(255, 255, 255, 0.05) 0 4deg, transparent 4deg 11deg);
+}
+#frost.on { opacity: 1; box-shadow: inset 0 0 180px 50px rgba(225, 248, 255, 0.75); }
+#desktop.frozen .file.infected .icon { animation: none; filter: drop-shadow(0 0 12px #9fe0ff) saturate(0.3) brightness(1.15); }
+#desktop.frozen .file .demon { animation-play-state: paused; filter: drop-shadow(0 0 8px #9fe0ff) saturate(0.2) brightness(1.4) hue-rotate(160deg); }
+#desktop.frozen .file.infected { background: none; }
+#desktop.frozen .file.infected::before {
+  content: ''; position: absolute; inset: -6px 4px 16px; z-index: 3; pointer-events: none; border-radius: 12px;
+  border: 2px solid rgba(210, 242, 255, 0.85);
+  background: linear-gradient(135deg, rgba(230, 248, 255, 0.45), rgba(120, 190, 255, 0.15) 50%, rgba(230, 248, 255, 0.35));
+  box-shadow: 0 0 18px rgba(160, 220, 255, 0.7), inset 0 0 14px rgba(255, 255, 255, 0.6);
+}
+#desktop.frozen .file.infected .label { color: #d4f4ff; }

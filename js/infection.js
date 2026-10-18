@@ -11,6 +11,7 @@ export class Infection {
     this.cfg = { rate: 0, spreadDelay: 0 };
     this.flights = [];
     this.tendrils = [];
+    this.frozenFor = 0;
     desktop.onCauldronDrop = node => this.banish(node);
     fx.addLayer((ctx, now) => this.drawTendrils(ctx, now));
   }
@@ -19,6 +20,36 @@ export class Infection {
     this.cfg = cfg;
     for (const f of this.flights) { f.anim.cancel(); f.el.remove(); }
     this.flights = [];
+    this.tendrils = [];
+    this.thaw();
+  }
+
+  get frozen() { return this.frozenFor > 0; }
+
+  // Freeze spell: corruption, hops, spreading and demons in flight all stop.
+  freeze(seconds) {
+    this.frozenFor = seconds;
+    for (const f of this.flights) f.anim.pause();
+    this.desktop.el.classList.add('frozen');
+  }
+
+  thaw() {
+    this.frozenFor = 0;
+    for (const f of this.flights) f.anim.play();
+    this.desktop.el.classList.remove('frozen');
+  }
+
+  // Fireball: demons still in the air burn up before they land.
+  burnFlights() {
+    for (const f of this.flights) {
+      const r = f.el.getBoundingClientRect();
+      fx.burst(r.left + r.width / 2, r.top + r.height / 2, { color: '#ff8a2a', n: 40, speed: 300 });
+      f.anim.cancel();
+      f.el.remove();
+      f.node.reserved = false;
+    }
+    this.flights = [];
+    for (const t of this.tendrils) { const dst = this.fs.find(t.to); if (dst) dst.reserved = false; }
     this.tendrils = [];
   }
 
@@ -106,6 +137,11 @@ export class Infection {
   }
 
   update(dt) {
+    if (this.frozenFor > 0) {
+      this.frozenFor -= dt;
+      if (this.frozenFor <= 0) { this.thaw(); this.bus.emit('thaw'); }
+      return;
+    }
     // Glowing trail behind demons in flight.
     for (const f of this.flights) {
       const r = f.el.getBoundingClientRect();
@@ -175,12 +211,23 @@ export class Infection {
     this.bus.emit('hop', node);
   }
 
-  // Dropping a possessed file into the cauldron banishes its demon.
-  banish(node) {
-    if (node.state !== 'infected') { this.bus.emit('clean-in-cauldron', node); return false; }
+  // Dropping a possessed file into the cauldron banishes its demon. A spell
+  // banishes it where it stands instead: pass `at` and `spell`.
+  banish(node, { at, spell } = {}) {
+    if (node.state !== 'infected') {
+      if (!spell) this.bus.emit('clean-in-cauldron', node);
+      return false;
+    }
     const info = node.inf;
-    const c = this.desktop.cauldronCenter();
-    this.boom(c, info.monster, node.boss ? 1.6 : 1);
+    const c = at || this.desktop.cauldronCenter();
+    const lift = spell ? 70 : 230;
+    if (spell) {
+      fx.burst(c.x, c.y, { color: '#ff8a2a', n: 50, speed: 380, size: 6, gravity: -120 });
+      fx.burst(c.x, c.y, { color: '#ffe46b', n: 25, speed: 240 });
+      fx.ring(c.x, c.y, '#ff8a2a', 120);
+    } else {
+      this.boom(c, info.monster, node.boss ? 1.6 : 1);
+    }
     if (node.boss && --node.bossHp > 0) {
       // The boss survives the first hits and leaps back out of the brew.
       info.corruption = Math.max(0, info.corruption - 35);
@@ -188,16 +235,16 @@ export class Infection {
       node.pos = this.desktop.freeSpot();
       this.fs.emit();
       this.desktop.hopAnim(node.id);
-      fx.text(c.x, c.y - 230, `${node.bossHp} more hit${node.bossHp > 1 ? 's' : ''}!`, '#ffd36b', 46);
+      fx.text(c.x, c.y - lift, `${node.bossHp} more hit${node.bossHp > 1 ? 's' : ''}!`, '#ffd36b', 46);
       this.bus.emit('boss-hit', node);
       return true;
     }
     node.state = 'clean';
     node.inf = null;
-    fx.text(c.x, c.y - 230, node.boss ? 'BOSS BANISHED!' : 'BANISHED!', '#f3eaff', node.boss ? 76 : 64);
+    fx.text(c.x, c.y - lift, node.boss ? 'BOSS BANISHED!' : 'BANISHED!', '#f3eaff', node.boss ? 76 : spell ? 36 : 64);
     this.fs.emit();
     this.desktop.materialize([node.id]);
-    this.bus.emit('banished', { node, name: info.name, ms: performance.now() - (info.since || performance.now()) });
+    this.bus.emit('banished', { node, name: info.name, ms: performance.now() - (info.since || performance.now()), spell: !!spell });
     return true;
   }
 

@@ -26,6 +26,7 @@ Use this when you want a web page controlled by hand gestures from a webcam, wit
 | Gesture | Rule |
 |---|---|
 | Pinch | `ratio = dist(4, 8) / dist(0, 9)`. On below 0.25, off above 0.40 (hysteresis). Overrides every other label. |
+| Horns | Index and pinky extended, middle and ring curled, or the model's `ILoveYou` label. |
 | Pointing | Index extended (`d(8, wrist) > 1.1 * d(6, wrist)`) and middle, ring and pinky curled (`d(tip, wrist) < 1.05 * d(pip, wrist)`). This is more reliable than the model's `Pointing_Up` when the finger points sideways. |
 | Model labels | Use `Open_Palm`, `Thumb_Up` and `Victory` when the score is above 0.6. |
 | Debounce | A label must hold for 3 consecutive detections before it counts. |
@@ -39,6 +40,8 @@ Use dwell for "click-like" actions: fire once when the same gesture stays on the
 - Big actions (next level, pause) fire when a model label is held: thumbs up for 1 s, peace sign for 1.2 s. Show the fill as a ring around the cursor and on the prompt itself.
 - Measure the hold from whichever is later: when the gesture started, or when the prompt appeared. Otherwise a thumb that was already up skips the screen.
 - Fire once per hold. Reset when the label changes.
+- Chains of held signs (fist, point, palm, horns) work well as "spells": lock each sign after 400 ms, allow 2.5 s to the next one, and break the chain only when a wrong sign is held for the full lock time. Read the chain backwards for a second spell.
+- Block a pinch from starting while the index and middle tips are folded into the palm, or a fist can register as a pinch.
 - Free-hand drawing in the air felt laggy and imprecise in testing. Pinch-drag plus held poses was much easier for first-time players.
 
 ## Multimodal model on snapshots
