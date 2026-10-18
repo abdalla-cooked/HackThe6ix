@@ -1,5 +1,5 @@
 // Renders the haunted desktop: files, folder windows, drag and drop, cauldron.
-import { fileIconEl, spriteEl } from './assets.js';
+import { fileIconEl, spriteEl, eyesEl } from './assets.js';
 
 const TOP = 80;
 const BOTTOM_RESERVED = 230;
@@ -94,7 +94,9 @@ export class Desktop {
     el.querySelector('.tag').textContent = node.boss ? `Boss: ${node.bossHp} hit${node.bossHp > 1 ? 's' : ''} left` : 'Possessed!';
     if (node.state === 'infected' && node.inf) {
       if (demon.dataset.monster !== node.inf.monster.id) {
-        demon.replaceChildren(spriteEl(node.inf.monster, 'demon-sprite'));
+        const sprite = spriteEl(node.inf.monster, 'demon-sprite');
+        sprite.style.animationDelay = `${(-Math.random() * 3).toFixed(2)}s`;
+        demon.replaceChildren(sprite, eyesEl(node.inf.monster));
         demon.dataset.monster = node.inf.monster.id;
       }
       el.style.setProperty('--inf', (node.inf.corruption / 100).toFixed(3));
@@ -348,6 +350,16 @@ export class Desktop {
       node.pos = this.clampPos(s.x - dx, s.y - dy);
     }
     this.render();
+  }
+
+  // The demon squeezes into the file and the icon convulses.
+  possessAnim(id) {
+    const el = this.els.get(id);
+    if (!el) return;
+    el.classList.remove('possessing');
+    void el.offsetWidth;
+    el.classList.add('possessing');
+    setTimeout(() => el.classList.remove('possessing'), 800);
   }
 
   hopAnim(id) {

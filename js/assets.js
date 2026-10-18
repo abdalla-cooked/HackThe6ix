@@ -5,15 +5,15 @@ const K = n => `assets/kenney/tile_${String(n).padStart(4, '0')}.png`;
 
 export const ASSETS = {
   monsters: [
-    { id: 'ghost',   label: 'Ghost',   sprite: K(121), art: 'wraith' },
-    { id: 'slime',   label: 'Slime',   sprite: K(108), art: 'wraith' },
-    { id: 'bat',     label: 'Bat',     sprite: K(120), art: 'bat' },
-    { id: 'spider',  label: 'Spider',  sprite: K(122), art: 'imp' },
-    { id: 'demon',   label: 'Demon',   sprite: K(110), art: 'imp' },
-    { id: 'cultist', label: 'Cultist', sprite: K(111), art: 'skull' },
-    { id: 'cyclops', label: 'Cyclops', sprite: K(109), art: 'pumpkin' },
+    { id: 'ghost',   label: 'Ghost',   sprite: K(121), art: 'wraith',  eyes: [[7, 7], [10, 7]] },
+    { id: 'slime',   label: 'Slime',   sprite: K(108), art: 'wraith',  eyes: [[6.5, 8], [9.5, 8]] },
+    { id: 'bat',     label: 'Bat',     sprite: K(120), art: 'bat',     eyes: [[6.5, 7.5], [9.5, 7.5]] },
+    { id: 'spider',  label: 'Spider',  sprite: K(122), art: 'imp',     eyes: [[6.5, 5], [9.5, 5]] },
+    { id: 'demon',   label: 'Demon',   sprite: K(110), art: 'imp',     eyes: [[6.5, 8.5], [9.5, 8.5]] },
+    { id: 'cultist', label: 'Cultist', sprite: K(111), art: 'skull',   eyes: [[6.5, 8.5], [10.5, 8.5]] },
+    { id: 'cyclops', label: 'Cyclops', sprite: K(109), art: 'pumpkin', eyes: [[8.5, 7]] },
   ],
-  boss: { id: 'king', label: 'Mimic King', sprite: K(92), art: 'king' },
+  boss: { id: 'king', label: 'Mimic King', sprite: K(92), art: 'king', eyes: [[4.5, 8.5], [11.5, 8.5]] },
   mage: { id: 'mage', label: 'Morwen', sprite: K(84), art: 'mage', name: 'Morwen the Mage' },
   folder: K(89),
   lost: K(65),
@@ -106,6 +106,20 @@ export function fileIconEl(kind, name = '') {
     el.append(img);
   } else {
     el.innerHTML = fileSVG(kind, ext);
+  }
+  return el;
+}
+
+// Glowing red eyes laid over a monster sprite, at its eye pixels (16 px grid).
+export function eyesEl(entry) {
+  const el = document.createElement('span');
+  el.className = 'eyes';
+  for (const [x, y] of entry.eyes || [[6.5, 7], [9.5, 7]]) {
+    const eye = document.createElement('span');
+    eye.className = 'eye';
+    eye.style.left = `${(x / 16) * 100}%`;
+    eye.style.top = `${(y / 16) * 100}%`;
+    el.append(eye);
   }
   return el;
 }

@@ -1,4 +1,4 @@
-// Gemma 4 through the Gemini API, called on single webcam snapshots only.
+// Gemma 4 through the Gemini API, called on single images only (webcam snapshots or a file you ask about).
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const TIMEOUT_MS = 10000;
 const MAX_QUEUE = 3;
@@ -8,11 +8,11 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const FALLBACK_NAMES = ['Grimbold the Unzipped', 'Lady Corrupta', 'Sir Bitrot', 'The Null Pointer', 'Malware Malachai',
   'Hexadecimus', 'Old Man Segfault', 'Countess Cache', 'Baron von Bytes', 'The Pale Pixel', 'Glitchwick',
   'Mother Murk', 'The Dread Defrag', 'Spooky Sudo', 'Wailing Wendigo'];
-const FALLBACK_TAUNTS = ['Your file is mine now, mortal.', 'I smell fear. And old coffee.', 'Nice room. Shame about your files.',
-  'You call that a spell? I call it waving.', 'This file tastes delicious.', 'Your cauldron is cold and so is your heart.',
-  'I have haunted better desktops than this.', 'Grab faster, apprentice.', 'Every byte belongs to the dark now.',
-  'I will spread like gossip at a seance.', 'Your hands shake. Good.', 'Even your cat would cast better.',
-  'I see you squinting at me.', 'Back up your files? Too late.', 'I live here now. Pay rent in souls.'];
+const FALLBACK_TAUNTS = ['Your file is mine now. You are next.', 'I can smell your fear through the screen.', 'Nice room. I will enjoy it after you are gone.',
+  'Your hands are shaking. Good.', 'This file tastes like your secrets.', 'Your cauldron is cold and so is your grave.',
+  'I have been watching you longer than you think.', 'Grab faster. I can wait. I have forever.', 'Every byte belongs to the dark now.',
+  'Do not look behind you.', 'I can hear your heartbeat from in here.', 'Turn off the lights. I dare you.',
+  'I see you squinting at me.', 'Back up your files? Too late.', 'When you sleep tonight, I will still be here.'];
 const FALLBACK_RANKS = [
   ['Apprentice of the Third Crypt', 'Your wand hand is shaky but your heart is brave.'],
   ['Keeper of the Cold Cauldron', 'The files are safe, mostly. Move those hands faster.'],
@@ -137,9 +137,12 @@ export class Gemma {
   async possession(monster, file) {
     const text = await this.request(
       `You are a ${monster.label} demon that just possessed a file named '${file.name}' on this person's computer. ` +
-      `Look at their webcam photo. Reply in exactly this format:\n` +
-      `NAME: <a spooky demon name, 2 to 4 words, can pun on the file name>\n` +
-      `TAUNT: <max 18 words, mention something you can actually see in the photo>\nNo emojis.`);
+      `Study their webcam photo. Pick ONE concrete thing you can really see: clothing, glasses, headphones, a hat, an object, a poster, a lamp, the room behind them. ` +
+      `Threaten them about it in a creepy, horror-movie way, for example "Nice hoodie. It will look good on your corpse." ` +
+      `Only mention things that are actually in the photo. Never comment on their body, face, skin, weight, age, race or gender. No gore, no slurs.\n` +
+      `Reply in exactly this format:\n` +
+      `NAME: <a dread demon name, 2 to 4 words, can pun on the file name>\n` +
+      `TAUNT: <max 18 words, the creepy threat about the thing you see>\nNo emojis.`);
     const name = tidy(text?.match(/NAME:\s*(.+)/i)?.[1]);
     const taunt = tidy(text?.match(/TAUNT:\s*(.+)/i)?.[1]);
     return { name: name || pick(FALLBACK_NAMES), taunt: taunt || pick(FALLBACK_TAUNTS), live: !!(name && taunt) };
@@ -151,7 +154,7 @@ export class Gemma {
       `Stats: ${stats.banished} demons banished, ${stats.lost} files lost, ${stats.hops} times a demon hopped away, ` +
       `${stats.spells} hand-sign spells cast, fastest save ${stats.fastestCleanseMs} ms${stats.boss ? ', and they beat the Mimic King boss' : ''}. Look at their photo. Reply in exactly this format:\n` +
       `RANK: <witch or wizard title, max 6 words>\n` +
-      `VERDICT: <max 30 words, warm and spooky, mention something visible in the photo>`, { important: true });
+      `VERDICT: <max 30 words, ominous but kind underneath, mention one thing visible in the photo (not their body or appearance)>`, { important: true });
     const rank = tidy(text?.match(/RANK:\s*(.+)/i)?.[1]);
     const verdict = tidy(text?.match(/VERDICT:\s*([\s\S]+)/i)?.[1]);
     if (rank || verdict) return { rank: rank || 'Mysterious Apprentice', verdict: verdict || tidy(text) };

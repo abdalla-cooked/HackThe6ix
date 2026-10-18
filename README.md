@@ -38,9 +38,31 @@ A cast needs a full mana bar. It starts full each level and refills after 4 caul
 
 Morwen the Mage walks you through a tutorial, calls out what is happening and tracks every monster you meet in her bestiary. The art is Kenney's Tiny Dungeon pixel pack, with lightning, drifting fog, flickering torches and a spark trail behind your hand.
 
-No camera? The whole game works with a mouse: left drag is a pinch, hold P for an open palm, T for a thumbs up and V for the peace sign. For spells, hold F (fist), D (point), P (palm) and H (horns) in order.
+No camera? The whole game works with a mouse: left drag is a pinch, hold P for an open palm, T for a thumbs up and V for the peace sign. For spells, hold F (fist), D (point), P (palm) and H (horns) in order. M mutes the sound.
 
 Add `?level=3` to the URL to jump straight to a level, for example to show off the boss and the spells.
+
+### Scare levels
+
+The Kenney sprites stay exactly as they are. The horror comes from light, sound and glitches layered on top. Pick a level in **Settings**:
+
+| Level | What you get |
+|---|---|
+| **Nightmare** (default) | The room is nearly black. Your hand carries the light, torches stutter, and the cauldron and possessed files glow. Demons are black shapes with red eyes until your light reaches them. |
+| **Creepy** | A dim room with the same red-eyed, red-tinted demons and all the glitches and sound. Easier to read on a projector. |
+| **Cute** | The original look, no extra layers. |
+
+On Nightmare and Creepy you also get:
+
+- Film grain, scanlines, a red vignette that throbs with your heartbeat, and RGB-split titles and labels.
+- A demon that possesses a file squeezes into it, and the file icon convulses. Possessed sprites glitch and tear.
+- Names of possessed files flicker into things like `HELP_ME.txt` or `you_cant_leave.exe`, and start to crawl with corrupted characters when the file is close to lost.
+- Lightning lights up the whole room for a moment. On Nightmare, the lights sometimes cut out with an electric buzz, and only the possessed files keep glowing.
+- Morwen's lines are darker, and she mutters about things moving in the dark when it gets quiet.
+
+**Sound** is synthesized live with the Web Audio API, so there are no audio files: a low drone and wind, a heartbeat that speeds up and gets louder as corruption climbs, whispers when a demon possesses a file, a distorted scream when one is banished, a cracked bell when a file is lost and thunder after lightning. It starts on your first click. Mute it with the speaker button in the top bar or the M key.
+
+**Jump scare:** turn on "Jump scare when a file is lost" in Settings and a giant demon fills the screen with a screech each time a file turns to stone. It is off by default so it never surprises you in the middle of a live demo.
 
 ## Files app (Crypt Explorer)
 
@@ -63,7 +85,7 @@ To open a real folder, click **Open a real folder** with the mouse. Browsers onl
 
 Gemma 4 runs through the Gemini API, and only on single images (a webcam snapshot, or a file you ask about), never on video frames. Hand tracking needs about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
 
-- **Possession.** When a demon lands in a file, the app sends Gemma a mirrored 384x288 snapshot and the file name. Gemma replies with a demon name (often a pun on the file) and a taunt that mentions something it can actually see, like your hoodie or the lamp behind you.
+- **Possession.** When a demon lands in a file, the app sends Gemma a mirrored 384x288 snapshot and the file name. Gemma replies with a demon name (often a pun on the file) and a creepy threat about one real thing it can see, like "Nice hoodie. It will look good on your corpse." The prompt tells it to stick to objects, clothes and the room, and never to comment on your body or appearance.
 - **File readings.** In the Files app, Gemma gets the file you are previewing (an image, or the start of a text file) and describes it as Morwen.
 - **Level judgment.** When you clear a level, Gemma gets a snapshot and your stats (banished, lost, how often demons hopped away, spells cast, fastest save, boss beaten) and gives you a witch rank and a verdict, shown on the level-up screen.
 
@@ -123,6 +145,8 @@ js/spells.js      hand-sign chains, mana, fireball and freeze
 js/mage.js        speech queue, task box, bestiary
 js/gemma.js       Gemini API client, snapshots, prompts, fallbacks
 js/fx.js          particles, rings, lightning, flashes, screen shake
+js/scare.js       scare levels: darkness and hand light, silhouettes, glitching names, blackouts, jump scare
+js/sound.js       synthesized drone, heartbeat, whispers, screams, bell, thunder
 ```
 
 ## Credits

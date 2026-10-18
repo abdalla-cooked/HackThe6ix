@@ -1,5 +1,5 @@
 // Possession, corruption, spread, hopping, lost files, bosses and the cauldron banish.
-import { ASSETS, spriteEl } from './assets.js';
+import { ASSETS, spriteEl, eyesEl } from './assets.js';
 import { fx } from './fx.js';
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -92,7 +92,7 @@ export class Infection {
     const mid = { x: (from.x + to.x) / 2 + (Math.random() - 0.5) * 300, y: Math.min(from.y, to.y) - 120 };
     const el = document.createElement('div');
     el.className = 'flyer';
-    el.append(spriteEl(monster, 'flyer-sprite'));
+    el.append(spriteEl(monster, 'flyer-sprite'), eyesEl(monster));
     document.body.append(el);
     const tf = (p, s) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${s})`;
     const anim = el.animate([
@@ -119,6 +119,7 @@ export class Infection {
     const c = this.desktop.centerOf(node.id);
     if (c) fx.burst(c.x, c.y, { color: '#6dff6d', n: 30 });
     this.fs.emit();
+    this.desktop.possessAnim(node.id);
     this.bus.emit('possess', node);
     if (info.taunt) this.announce(node);
   }
@@ -194,6 +195,7 @@ export class Infection {
   lose(node) {
     const c = this.desktop.centerOf(node.id);
     node.state = 'lost';
+    node.killer = node.inf?.monster;
     node.inf = null;
     if (c) fx.burst(c.x, c.y, { color: '#8a8a8a', n: 40, gravity: 120 });
     this.fs.emit();

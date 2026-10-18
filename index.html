@@ -55,6 +55,7 @@
     <span id="gemma-badge" class="badge">Gemma: no key</span>
     <button id="skip-tut" class="hud-btn game-only" data-action="skip-tutorial" hidden>Skip tutorial</button>
     <button id="mode-btn" class="hud-btn" data-action="toggle-mode" data-dwell="toggle-mode">Files app</button>
+    <button id="sound-btn" class="hud-btn icon-btn" data-action="toggle-sound" title="Sound on (M to mute)"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="waves" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12"/><path class="slash" d="M16 9l6 6M22 9l-6 6"/></svg></button>
     <button class="hud-btn" data-action="settings">Settings</button>
   </header>
 
@@ -119,14 +120,24 @@
       </div>
       <label class="start-skip"><input type="checkbox" id="chk-skip"> Skip the tutorial</label>
       <p id="start-status" class="muted"></p>
-      <p class="muted small">Mouse: left drag = pinch, hold P = open palm, hold T = thumbs up, hold V = pause. Spell signs: F fist, D point, P palm, H horns.</p>
-      <button id="btn-settings-start" class="link">Gemma 4 settings</button>
+      <p class="muted small">Mouse: left drag = pinch, hold P = open palm, hold T = thumbs up, hold V = pause. Spell signs: F fist, D point, P palm, H horns. M mutes.</p>
+      <p class="scare-note">Best with sound on, in a dark room. Scare level: <b id="start-scare">Nightmare</b></p>
+      <button id="btn-settings-start" class="link">Settings (scare level, Gemma 4)</button>
     </div>
   </section>
 
   <dialog id="settings" class="native">
     <form method="dialog">
-      <h3>Gemma 4 settings</h3>
+      <h3>Settings</h3>
+      <label>Scare level
+        <select id="set-scare">
+          <option value="2">Nightmare: pitch dark, your hand is the light</option>
+          <option value="1">Creepy: dim room, red eyes, glitches</option>
+          <option value="0">Cute: the original look</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="set-jumps"> Jump scare when a file is lost (loud)</label>
+      <h4>Gemma 4</h4>
       <label>Gemini API key
         <input id="set-key" type="password" autocomplete="off" placeholder="Paste your key from Google AI Studio">
       </label>
@@ -140,7 +151,7 @@
       <p class="muted small">Your key is stored only in this browser (localStorage) and sent only to Google's Gemini API.</p>
       <details>
         <summary>Credits</summary>
-        <p class="small">Hand tracking: MediaPipe (Apache 2.0). Monsters, mage and dungeon: Tiny Dungeon by Kenney (CC0). Font: Creepster by Sideshow (SIL OFL). Full list in CREDITS.md.</p>
+        <p class="small">Hand tracking: MediaPipe (Apache 2.0). Monsters, mage and dungeon: Tiny Dungeon by Kenney (CC0). Font: Creepster by Sideshow (SIL OFL). Sound: synthesized in your browser. Full list in CREDITS.md.</p>
       </details>
       <div class="row end">
         <button value="cancel">Close</button>

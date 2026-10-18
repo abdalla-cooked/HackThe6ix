@@ -11,6 +11,10 @@ One line per third-party asset or library: `asset | source | author | license | 
 
 - Creepster | Google Fonts | Sideshow | SIL Open Font License 1.1 | https://fonts.google.com/specimen/Creepster
 
+## Sound
+
+- All sound effects and ambience (drone, wind, heartbeat, whispers, screams, bell, thunder, buzz, jump scare) | synthesized at runtime with the Web Audio API in `js/sound.js` | Haunted Files team | MIT | (this repo). No third-party audio files are used.
+
 ## Art
 
 - Tiny Dungeon 1.0 (tiles 65, 84, 89, 92, 108, 109, 110, 111, 120, 121, 122 in `assets/kenney/`, plus `dungeon-bg.png`, which is built from the pack's floor, wall, banner, gargoyle and grave tiles and recolored) | kenney.nl | Kenney | CC0 1.0 | https://kenney.nl/assets/tiny-dungeon

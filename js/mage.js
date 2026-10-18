@@ -32,6 +32,11 @@ export class Mage {
 
   clear() { this.queue = []; this.current = null; }
 
+  // Nothing waiting and the current line has been on screen for a while.
+  get idle() {
+    return !this.queue.length && (!this.current || (this.current.chars >= this.current.text.length && this.current.hold > 4));
+  }
+
   skip() {
     if (!this.current) return;
     if (this.current.chars < this.current.text.length) this.current.chars = this.current.text.length;

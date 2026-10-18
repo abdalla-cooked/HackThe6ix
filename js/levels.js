@@ -57,12 +57,12 @@ export class Levels {
     this.mage.clear();
     this.mage.hideButton();
     if (this.tutorial) {
-      this.mage.say('Welcome, apprentice. I am Morwen. A demon is about to jump into one of your files. Watch closely!');
+      this.mage.say('Welcome, apprentice. I am Morwen. Something is crawling toward your files tonight. Watch closely, and try not to blink.');
       this.mage.setTask('Watch your files. A demon is coming...');
     } else {
-      this.mage.say(`${this.cfg.name}: protect ${this.cfg.files} files. Lose ${this.cfg.maxLost} and we fail.`, { priority: 'high' });
-      if (this.cfg.boss) this.mage.say(`The ${ASSETS.boss.label} is coming! He takes 3 trips to the cauldron, and if he turns to stone we lose.`, { mood: 'alarm' });
-      if (this.cfg.hop && !levelCfg(n - 1).hop) this.mage.say('Careful: these demons hop to a new spot if you leave them alone too long.', { mood: 'alarm' });
+      this.mage.say(`${this.cfg.name}: protect ${this.cfg.files} files. Lose ${this.cfg.maxLost} and the dark takes the rest.`, { priority: 'high' });
+      if (this.cfg.boss) this.mage.say(`The ${ASSETS.boss.label} is coming. He wears a file like a skin. It takes 3 trips to the cauldron, and if he turns to stone we are finished.`, { mood: 'alarm' });
+      if (this.cfg.hop && !levelCfg(n - 1).hop) this.mage.say('Careful: leave these ones alone too long and they crawl somewhere else.', { mood: 'alarm' });
       this.mage.setTask(PLAY_TASK);
     }
     this.banner(this.cfg.name, this.cfg.boss ? '#ff7a1a' : '#b48cff');
@@ -142,7 +142,7 @@ export class Levels {
       this.showOverlay({ title: 'Tutorial complete!', sub: 'You know the trick: pinch, drag, drop in the cauldron.', next: next.name }, 1400);
       return;
     }
-    this.mage.say(`${this.cfg.name} cleared! Let me look at you...`, { priority: 'high', mood: 'proud' });
+    this.mage.say(`${this.cfg.name} cleared. For now. Let me look at you...`, { priority: 'high', mood: 'proud' });
     this.showOverlay({
       title: `${this.cfg.name} cleared!`,
       sub: `${s.banished} banished, ${s.lost} lost${s.fastestCleanseMs ? `, fastest save ${(s.fastestCleanseMs / 1000).toFixed(1)} s` : ''}`,
@@ -164,7 +164,7 @@ export class Levels {
     const bossLost = this.bossNode?.state === 'lost';
     this.mage.say(bossLost
       ? `The ${ASSETS.boss.label} turned to stone and took the desktop with him. Try ${this.cfg.name} again.`
-      : `Too many files lost. Even I failed my first exorcism. Try ${this.cfg.name} again.`, { priority: 'high', mood: 'alarm' });
+      : `Too many files lost. The dark has your desktop now. Try ${this.cfg.name} again, if you dare.`, { priority: 'high', mood: 'alarm' });
     this.mage.setTask(`${THUMB_TASK} again.`);
     fx.flash('rgba(255, 60, 80, 0.35)', 600);
     this.showOverlay({ title: 'The demons won', sub: bossLost ? `The ${ASSETS.boss.label} got away.` : `${this.stats.lost} files turned to stone.`, next: 'Retry', fail: true }, 900);
@@ -219,13 +219,13 @@ export class Levels {
       this.mage.seen(node.inf.monster);
       const parent = this.fs.parentOf(node.id);
       if (node.boss) {
-        mage.say(`The ${ASSETS.boss.label} has arrived! Drag him into the cauldron three times.`, { priority: 'high', mood: 'alarm' });
+        mage.say(`The ${ASSETS.boss.label} is here. Drag him into the cauldron three times, and do not let him bite.`, { priority: 'high', mood: 'alarm' });
       } else if (this.tutorial) {
-        mage.say(`There! A ${node.inf.monster.label} jumped into ${node.name}. See it shaking and glowing? Pinch it with your thumb and index finger and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' });
+        mage.say(`There! A ${node.inf.monster.label} crawled into ${node.name}. See it shaking and glowing? Pinch it with your thumb and index finger and drag it into the cauldron before it eats the file.`, { priority: 'high', mood: 'alarm' });
       } else if (parent && parent.id !== 0) {
-        mage.say(`A ${node.inf.monster.label} is hiding inside the ${parent.name} folder! Hold an open palm on the folder to open it.`, { mood: 'alarm' });
+        mage.say(`Something is moving inside the ${parent.name} folder. Hold an open palm on it to open it, and drag the ${node.inf.monster.label} out.`, { mood: 'alarm' });
       } else {
-        mage.say(`A ${node.inf.monster.label} just crawled into ${node.name}!`, { mood: 'alarm' });
+        mage.say(`A ${node.inf.monster.label} just crawled into ${node.name}. I can hear it chewing.`, { mood: 'alarm' });
       }
       this.refreshTask();
     });
@@ -237,7 +237,7 @@ export class Levels {
     bus.on('open-folder', () => this.refreshTask());
     bus.on('moved', () => this.refreshTask());
     bus.on('hop', () => { if (this.stats) this.stats.hops++; this.refreshTask(); });
-    bus.on('spread-warn', node => live() && mage.say(`${node.name} is spreading to its neighbor, hurry!`, { mood: 'alarm' }));
+    bus.on('spread-warn', node => live() && mage.say(`${node.name} is reaching for its neighbor. Hurry, before it feeds!`, { mood: 'alarm' }));
     bus.on('spread', () => { if (this.stats) this.stats.spreadsAllowed++; this.refreshTask(); });
     bus.on('lost', node => {
       if (!live()) return;
@@ -247,7 +247,7 @@ export class Levels {
       if (c) fx.text(c.x, c.y - 40, 'LOST!', '#ff5c6c', 44);
       fx.flash('rgba(255, 60, 80, 0.25)');
       fx.shake(this.desktop.el, 300, 8);
-      mage.say(`We lost ${node.name}. It is a tombstone now.`, { priority: 'high', mood: 'alarm' });
+      mage.say(`We lost ${node.name}. The screaming stopped. It is a tombstone now.`, { priority: 'high', mood: 'alarm' });
       this.refreshTask();
     });
     bus.on('boss-hit', node => {
@@ -260,12 +260,12 @@ export class Levels {
       s.banished++;
       if (!spell) s.fastestCleanseMs = s.fastestCleanseMs ? Math.min(s.fastestCleanseMs, ms) : ms;
       this.renderHud();
-      if (!spell || node.boss) mage.say(node.boss ? `The ${ASSETS.boss.label} is finished! Magnificent!` : `Splendid! ${name} is gone.`, { priority: 'high', mood: 'proud' });
+      if (!spell || node.boss) mage.say(node.boss ? `The ${ASSETS.boss.label} is finished. Listen to him scream!` : `${name} is back in the pit where it belongs.`, { priority: 'high', mood: 'proud' });
       this.refreshTask();
     });
-    bus.on('clean-in-cauldron', () => mage.say('That one is clean, do not waste the brew! Grab the shaking green one.', { priority: 'high' }));
-    bus.on('open-infected', node => mage.say(`Do not open ${node.name}! Pinch it and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' }));
-    bus.on('open-lost', node => mage.say(`${node.name} is gone. Rest in peace.`, { priority: 'high' }));
+    bus.on('clean-in-cauldron', () => mage.say('That one is clean! Do not feed the brew an innocent file. Grab the shaking green one.', { priority: 'high' }));
+    bus.on('open-infected', node => mage.say(`Do not open ${node.name}! Whatever is inside wants out. Pinch it and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' }));
+    bus.on('open-lost', node => mage.say(`${node.name} is gone. Let it rest. Do not dig.`, { priority: 'high' }));
   }
 
   // Pulsing ring on the file to save and a dashed arrow to the cauldron.

@@ -3,6 +3,7 @@
 // Read-only: moving files and the Graveyard only change this view, never the disk.
 import { fileIconEl } from './assets.js';
 import { fx } from './fx.js';
+import { sound } from './sound.js';
 
 const TYPES = [
   ['image', /\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i],
@@ -355,6 +356,7 @@ export class Explorer {
     fx.ring(c.x, c.y - 20, '#6dff6d', 200);
     fx.text(c.x, c.y - 160, 'BURIED!', '#c6ff9e', 52);
     fx.shake(this.desktop.el, 300, 8);
+    sound.scream(0.7);
     this.mage.say(`${n.name} rests in the Graveyard now. Open the Graveyard to bring it back.`, { priority: 'high' });
     this.render();
   }

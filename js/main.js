@@ -9,6 +9,8 @@ import { Spells } from './spells.js';
 import { Explorer } from './explorer.js';
 import { Mage } from './mage.js';
 import { Gemma } from './gemma.js';
+import { Scare, SCARE_LEVELS } from './scare.js';
+import { sound } from './sound.js';
 import { fx } from './fx.js';
 
 const $ = s => document.querySelector(s);
@@ -42,6 +44,7 @@ const overlay = {
 const levels = new Levels({ fs, desktop, infection, mage, gemma, bus, hud, overlay });
 const spells = new Spells({ fs, desktop, infection, levels, mage, bus });
 const explorer = new Explorer({ el: $('#explorer'), desktop, mage, gemma });
+const scare = new Scare({ desktop, fs, bus, mage });
 
 let started = false;
 let paused = false;
@@ -69,6 +72,7 @@ const actions = {
   'x-close': () => explorer.closePreview(),
   'x-ask': () => explorer.ask(),
   'x-pick-hint': () => explorer.pickHint(),
+  'toggle-sound': () => setMuted(!sound.muted),
 };
 function dispatch(name, el) { actions[name]?.(el); }
 
@@ -113,6 +117,24 @@ function setMode(m) {
   }
 }
 
+// ---- sound ----
+function setMuted(m) {
+  sound.setMuted(m);
+  const btn = $('#sound-btn');
+  btn.dataset.muted = m ? '1' : '0';
+  btn.title = m ? 'Sound off (M to turn on)' : 'Sound on (M to mute)';
+}
+setMuted(sound.muted);
+addEventListener('pointerdown', () => sound.start(), { once: true });
+addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'm' && !e.repeat && !e.target?.closest?.('input, select, textarea')) { sound.start(); setMuted(!sound.muted); }
+});
+bus.on('possess', () => sound.whisper());
+bus.on('banished', ({ spell }) => sound.scream(spell ? 0.8 : 1));
+bus.on('boss-hit', () => sound.scream(1.3));
+bus.on('spell-cast', () => sound.boom(0.7));
+bus.on('lost', node => { sound.knell(); scare.jumpscare(node.killer); });
+
 function nextLevel() {
   if (!levels.waiting) return;
   const c = overlay.thumb.getBoundingClientRect();
@@ -127,6 +149,7 @@ function strike() {
   fx.bolt(W * (0.1 + Math.random() * 0.8), 0, innerHeight * (0.25 + Math.random() * 0.35));
   $('#lightning').animate([{ opacity: 0 }, { opacity: 0.8 }, { opacity: 0.1 }, { opacity: 0.6 }, { opacity: 0 }], { duration: 450 });
   fx.shake(desktop.el, 300, 5);
+  scare.lightning();
 }
 
 // Bubbles over the brew and embers under the pot.
@@ -237,6 +260,7 @@ function frame(now) {
       lightningIn -= dt;
       if (lightningIn <= 0) { strike(); lightningIn = 7 + Math.random() * 7; }
     }
+    scare.update(dt, s, { files, playing: levels.playing && !paused, preview: !!explorer.previewing });
     mage.update(dt);
   }
 
@@ -265,6 +289,7 @@ function begin() {
 }
 
 $('#btn-camera').addEventListener('click', async () => {
+  sound.start();
   const status = $('#start-status');
   $('#btn-camera').disabled = true;
   try {
@@ -277,13 +302,21 @@ $('#btn-camera').addEventListener('click', async () => {
     $('#btn-camera').disabled = false;
   }
 });
-$('#btn-mouse').addEventListener('click', begin);
+$('#btn-mouse').addEventListener('click', () => { sound.start(); begin(); });
 
 // ---- settings dialog ----
 const dialog = $('#settings');
 const keyInput = $('#set-key');
 const modelSelect = $('#set-model');
 const setStatus = $('#set-status');
+const scareSelect = $('#set-scare');
+const jumpsBox = $('#set-jumps');
+
+// Scare settings apply as soon as you change them.
+function showScare() { $('#start-scare').textContent = SCARE_LEVELS[scare.level]; }
+showScare();
+scareSelect.addEventListener('change', () => { scare.setLevel(+scareSelect.value); showScare(); });
+jumpsBox.addEventListener('change', () => scare.setJumps(jumpsBox.checked));
 
 function fillModels(models, selected) {
   modelSelect.replaceChildren(...(models.length ? models : ['']).map(m => {
@@ -297,6 +330,8 @@ function fillModels(models, selected) {
 
 function openSettings() {
   keyInput.value = gemma.key;
+  scareSelect.value = scare.level;
+  jumpsBox.checked = scare.jumps;
   if (gemma.model) fillModels([gemma.model], gemma.model);
   setStatus.textContent = '';
   if (!dialog.open) dialog.showModal();
@@ -322,4 +357,4 @@ dialog.addEventListener('close', () => {
   if (dialog.returnValue === 'save') gemma.save(keyInput.value, modelSelect.value);
 });
 
-window.app = { fs, desktop, infection, levels, spells, explorer, mage, gemma, input, tracker, bus, setMode };
+window.app = { fs, desktop, infection, levels, spells, explorer, scare, sound, mage, gemma, input, tracker, bus, setMode };
