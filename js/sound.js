@@ -253,16 +253,17 @@ export const sound = {
     }
   },
 
-  // The jump scare: three clashing shrieks with random pitch jumps.
+  // The jump scare: three clashing shrieks with random pitch jumps over a bass slam.
   screech() {
     if (!this.ctx) return;
-    const t = this.ctx.currentTime + 0.005, dur = 0.85;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const t = this.ctx.currentTime + 0.005, dur = 0.7;
     const shaper = this.ctx.createWaveShaper();
     shaper.curve = this.curve;
     const g = this.ctx.createGain();
-    this.env(g, t, 0.45, 0.01, dur);
+    this.env(g, t, 0.7, 0.008, dur);
     shaper.connect(g).connect(this.master);
-    for (const f of [880, 1245, 1760]) {
+    for (const f of [880, 1245, 1760, 2350]) {
       const o = this.ctx.createOscillator();
       o.type = 'sawtooth';
       for (let x = 0; x < dur; x += 0.03) o.frequency.setValueAtTime(f * rand(0.85, 1.25), t + x);
@@ -272,8 +273,22 @@ export const sound = {
     }
     const src = this.noiseSrc(t, dur);
     const ng = this.ctx.createGain();
-    this.env(ng, t, 0.25, 0.01, dur * 0.7);
+    this.env(ng, t, 0.35, 0.005, dur * 0.6);
     src.connect(ng).connect(this.master);
-    this.boom(0.8);
+    // Bass hit: a distorted sub drop and a low thump of noise.
+    const sub = this.ctx.createOscillator(), sg = this.ctx.createGain(), sd = this.ctx.createWaveShaper();
+    sub.frequency.setValueAtTime(70, t);
+    sub.frequency.exponentialRampToValueAtTime(26, t + 0.55);
+    sd.curve = this.curve;
+    this.env(sg, t, 1, 0.005, 0.6);
+    sub.connect(sd).connect(sg).connect(this.master);
+    sub.start(t);
+    sub.stop(t + 0.7);
+    const thump = this.noiseSrc(t, 0.3), lp = this.ctx.createBiquadFilter(), tg = this.ctx.createGain();
+    lp.type = 'lowpass';
+    lp.frequency.value = 160;
+    this.env(tg, t, 1, 0.003, 0.25);
+    thump.connect(lp).connect(tg).connect(this.master);
+    this.boom(1);
   },
 };

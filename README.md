@@ -62,7 +62,7 @@ On Nightmare and Creepy you also get:
 
 **Sound** is synthesized live with the Web Audio API, so there are no audio files: a low drone and wind, a heartbeat that speeds up and gets louder as corruption climbs, whispers when a demon possesses a file, a distorted scream when one is banished, a cracked bell when a file is lost and thunder after lightning. It starts on your first click. Mute it with the speaker button in the top bar or the M key.
 
-**Jump scare:** turn on "Jump scare when a file is lost" in Settings and a giant demon fills the screen with a screech each time a file turns to stone. It is off by default so it never surprises you in the middle of a live demo.
+**Jump scare:** when a file dies, a giant red-eyed demon slams onto the screen for about half a second, zooming in and shaking, with a distorted screech and a bass hit, then the screen flashes red. It fires at most once every 20 seconds, so a chain of lost files does not spam it. It is on by default; untick "Jump scare when a file dies" in Settings to turn it off.
 
 ## Files app (Crypt Explorer)
 

@@ -3,6 +3,7 @@
 // Nothing here redraws the Kenney sprites; it only dims, tints and covers them.
 import { ASSETS, spriteEl, eyesEl } from './assets.js';
 import { sound } from './sound.js';
+import { fx } from './fx.js';
 
 function readStore(key) { try { return localStorage.getItem(key); } catch { return null; } }
 function writeStore(key, val) { try { localStorage.setItem(key, val); } catch { /* storage blocked */ } }
@@ -11,6 +12,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 
 export const SCARE_LEVELS = ['Cute', 'Creepy', 'Nightmare'];
 const DARK_SCALE = 1 / 3;
+const JUMP_MS = 600;
+const JUMP_COOLDOWN_MS = 20000;
 
 // Darkness by scare level: how dark the room is and how far your hand's light reaches.
 const DARK = {
@@ -48,7 +51,7 @@ export class Scare {
     Object.assign(this, { desktop, fs, bus, mage });
     const stored = parseInt(readStore('hf_scare') ?? '2', 10);
     this.level = stored >= 0 && stored <= 2 ? stored : 2;
-    this.jumps = readStore('hf_jumps') === '1';
+    this.jumps = readStore('hf_jumps') !== '0';
 
     this.dark = document.createElement('canvas');
     this.dark.id = 'dark';
@@ -296,10 +299,11 @@ export class Scare {
     }
   }
 
-  // Full-screen demon when a file is lost. Off unless turned on in Settings.
+  // Full-screen demon with a screech when a file dies. On by default, at most
+  // once every 20 s so a chain of deaths does not spam it. Settings turns it off.
   jumpscare(monster) {
     const now = performance.now();
-    if (!this.jumps || now - this.lastJump < 5000) return;
+    if (!this.jumps || now - this.lastJump < JUMP_COOLDOWN_MS) return;
     this.lastJump = now;
     const m = monster || pick(ASSETS.monsters);
     const face = document.createElement('div');
@@ -309,7 +313,11 @@ export class Scare {
     this.jump.hidden = false;
     sound.screech();
     this.glitch();
+    fx.shake(this.desktop.el, 600, 22);
     clearTimeout(this.jumpTimer);
-    this.jumpTimer = setTimeout(() => { this.jump.hidden = true; }, 900);
+    this.jumpTimer = setTimeout(() => {
+      this.jump.hidden = true;
+      fx.flash('rgba(255, 0, 20, 0.6)', 700);
+    }, JUMP_MS);
   }
 }
