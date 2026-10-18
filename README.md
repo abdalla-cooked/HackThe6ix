@@ -15,7 +15,6 @@ Demons are possessing the files on your desktop. You grab the possessed files wi
 | Open palm, held 0.6 s | Open a folder or file, skip the mage's line |
 | Thumbs up, held 1 s | Start the next level (or retry after a loss) |
 | Peace sign, held 1.2 s | Pause or resume |
-| Open your mouth for 1 s | Banshee scream: every infection drops by 10 (20 s cooldown) |
 | Fist, Point, Palm, Horns (from level 3) | **Fireball**: burns every demon on screen |
 | Horns, Palm, Point, Fist (from level 3) | **Freeze**: every demon stops for 8 s |
 
@@ -62,7 +61,7 @@ To open a real folder, click **Open a real folder** with the mouse. Browsers onl
 
 ## How Gemma 4 is used
 
-Gemma 4 runs through the Gemini API, and only on single images (a webcam snapshot, or a file you ask about), never on video frames. Hand and face tracking need about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
+Gemma 4 runs through the Gemini API, and only on single images (a webcam snapshot, or a file you ask about), never on video frames. Hand tracking needs about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
 
 - **Possession.** When a demon lands in a file, the app sends Gemma a mirrored 384x288 snapshot and the file name. Gemma replies with a demon name (often a pun on the file) and a taunt that mentions something it can actually see, like your hoodie or the lamp behind you.
 - **File readings.** In the Files app, Gemma gets the file you are previewing (an image, or the start of a text file) and describes it as Morwen.
@@ -75,7 +74,7 @@ The prompts live in [`js/gemma.js`](js/gemma.js).
 ## Open-source stack
 
 - **Gemma 4** (open weights) for demon names, taunts and judgments
-- **MediaPipe Tasks Vision** (Apache 2.0) for hand landmarks, gesture labels and face blendshapes, running fully in the browser
+- **MediaPipe Tasks Vision** (Apache 2.0) for hand landmarks and gesture labels, running fully in the browser
 - **Kenney Tiny Dungeon** (CC0) for the monsters, the mage, chests, graves and the dungeon background
 - Plain HTML, CSS and JavaScript modules, with no build step and no dependencies to install
 
@@ -112,7 +111,7 @@ index.html        app shell, start screen, level-up screen, settings, mage panel
 css/style.css     dungeon theme, desktop, infection effects, mage, cursor
 assets/kenney/    Tiny Dungeon tiles and the generated dungeon background
 js/main.js        boot, main loop, gesture dispatch, lightning, cauldron bubbles
-js/tracker.js     MediaPipe hand + face tracking
+js/tracker.js     MediaPipe hand tracking
 js/input.js       hand-or-mouse pointer, pinch math, gesture debounce
 js/assets.js      one config for all art, with SVG fallbacks
 js/fs.js          in-memory file system

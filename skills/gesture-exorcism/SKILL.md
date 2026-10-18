@@ -9,9 +9,9 @@ Use this when you want a web page controlled by hand gestures from a webcam, wit
 
 ## Tracking setup
 
-- Load `@mediapipe/tasks-vision@0.10.14` from jsDelivr as an ES module. Create a `GestureRecognizer` (`numHands: 1`, `runningMode: "VIDEO"`) and optionally a `FaceLandmarker` (`outputFaceBlendshapes: true`).
+- Load `@mediapipe/tasks-vision@0.10.14` from jsDelivr as an ES module. Create a `GestureRecognizer` (`numHands: 1`, `runningMode: "VIDEO"`).
 - Try `delegate: "GPU"` first and retry with `"CPU"` if creation throws.
-- Run detection in its own `requestAnimationFrame` loop, and only when `video.currentTime` changes. Run the face task every third frame to keep the frame rate up.
+- Run detection in its own `requestAnimationFrame` loop, and only when `video.currentTime` changes.
 - Mirror coordinates once (`x = 1 - x`) and mirror the preview `<video>` with CSS, so on-screen motion matches the user's hand.
 
 ## Pointer
@@ -31,7 +31,6 @@ Use this when you want a web page controlled by hand gestures from a webcam, wit
 | Model labels | Use `Open_Palm`, `Thumb_Up` and `Victory` when the score is above 0.6. |
 | Debounce | A label must hold for 3 consecutive detections before it counts. |
 | Hand lost | No hand for 400 ms switches to mouse fallback. |
-| Mouth open | Face blendshape `jawOpen > 0.5`. |
 
 Use dwell for "click-like" actions: fire once when the same gesture stays on the same target for 600 ms, and reset the timer when the target changes. Always ship a mouse fallback (left button = pinch, keys for the other gestures) for testing and demos.
 

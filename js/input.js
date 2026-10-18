@@ -143,7 +143,6 @@ export class Input {
       gesture, gestureMs: now - this.since,
       pinch, pinchStart: pinch && !this.prevPinch, pinchEnd: !pinch && this.prevPinch,
       source: this.source,
-      face: this.tracker?.face?.present ? this.tracker.face : null,
     };
     this.prevPinch = pinch;
     return state;

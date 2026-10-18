@@ -4,7 +4,7 @@ One line per third-party asset or library: `asset | source | author | license | 
 
 ## Libraries and models
 
-- MediaPipe Tasks Vision 0.10.14 (hand gesture recognizer, face landmarker) | Google | Google | Apache 2.0 | https://ai.google.dev/edge/mediapipe
+- MediaPipe Tasks Vision 0.10.14 (hand gesture recognizer) | Google | Google | Apache 2.0 | https://ai.google.dev/edge/mediapipe
 - Gemma 4 (called through the Gemini API) | Google DeepMind | Google DeepMind | Gemma terms of use | https://ai.google.dev/gemma
 
 ## Fonts

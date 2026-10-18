@@ -200,10 +200,6 @@ export class Infection {
     this.bus.emit('lost', node);
   }
 
-  scream() {
-    for (const n of this.fs.byState('infected')) n.inf.corruption = Math.max(0, n.inf.corruption - 10);
-  }
-
   hop(node) {
     const from = this.desktop.centerOf(node.id);
     node.pos = this.desktop.freeSpot();

@@ -52,7 +52,6 @@ let pauseFired = false;
 let nextFired = false;
 let lightningIn = 8;
 let bubbleT = 0;
-const scream = { held: 0, cooldown: 0 };
 
 const actions = {
   close: el => desktop.closeWindow(+el.closest('.win').dataset.win),
@@ -228,20 +227,6 @@ function frame(now) {
     if (Math.hypot(s.vx, s.vy) > 60 || dragging) fx.trail(s.x, s.y, dragging ? '#6dff6d' : TRAIL_COLORS[s.gesture] || '#ff8a2a');
 
     if (!paused && !files) {
-      // Scream: mouth open for 1 s knocks every infection back by 10.
-      scream.cooldown = Math.max(0, scream.cooldown - dt);
-      if (s.face && s.face.jawOpen > 0.5 && scream.cooldown === 0 && levels.playing) {
-        scream.held += dt;
-        if (scream.held >= 1) {
-          scream.held = 0;
-          scream.cooldown = 20;
-          infection.scream();
-          fx.text(innerWidth / 2, innerHeight / 2, 'AAAAAH!', '#6dff6d', 64);
-          mage.say('A banshee scream! The demons flinch.', { priority: 'high', mood: 'proud' });
-        }
-      } else {
-        scream.held = 0;
-      }
       progress = Math.max(progress, spells.update(s, dt));
       infection.update(dt);
       levels.update(dt);
