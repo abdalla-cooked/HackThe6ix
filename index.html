@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Haunted Files</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="desktop">
+    <div class="moon"></div>
+    <div class="fog fog-a"></div>
+    <div class="fog fog-b"></div>
+    <div id="files"></div>
+    <div id="windows"></div>
+    <div id="cauldron">
+      <div class="cauldron-slot"></div>
+      <div class="pot"><span class="bubble b1"></span><span class="bubble b2"></span><span class="bubble b3"></span></div>
+      <div class="cauldron-label">Cauldron</div>
+    </div>
+    <div id="ritual" hidden>
+      <div class="ritual-head">
+        <div class="ritual-demon"></div>
+        <div><div class="ritual-name"></div><div class="ritual-spell"></div></div>
+      </div>
+      <div class="ritual-glyph-wrap">
+        <svg class="ritual-timer" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" pathLength="100"/></svg>
+        <div class="ritual-glyph"></div>
+      </div>
+      <div class="ritual-hint"></div>
+    </div>
+  </main>
+
+  <header id="hud">
+    <h1>Haunted Files</h1>
+    <span id="hud-level">Tutorial</span>
+    <span id="hud-lost"></span>
+    <span id="hud-banished"></span>
+    <span id="gemma-badge" class="badge">Gemma: no key</span>
+    <button id="skip-tut" class="hud-btn" data-action="skip-tutorial" hidden>Skip tutorial</button>
+    <button class="hud-btn" data-action="settings">Settings</button>
+  </header>
+
+  <aside id="mage">
+    <div class="mage-sprite"></div>
+    <div class="mage-name"></div>
+    <div class="mage-bubble" data-dwell="mage-skip"><span class="mage-text"></span></div>
+    <div class="mage-task"><small>Your task</small><span></span></div>
+    <button class="mage-btn" data-action="mage-next" data-dwell="mage-next" hidden>Next level</button>
+    <div class="mage-legend"></div>
+    <div class="mage-help">
+      <b>Pinch</b> grab and drag<br>
+      <b>Open palm</b> (hold) open<br>
+      <b>Point</b> draw a shape<br>
+      <b>Thumb up</b> (hold) pause
+    </div>
+  </aside>
+
+  <canvas id="fx"></canvas>
+
+  <div id="cam">
+    <video autoplay playsinline muted></video>
+    <canvas width="640" height="480"></canvas>
+    <div id="gesture-label">mouse</div>
+  </div>
+
+  <div id="cursor"><div class="cursor-ring"></div><div class="cursor-dot"></div></div>
+  <div id="pause" hidden><div>Paused</div><small>Hold thumb up to resume</small></div>
+  <div id="debug-shapes" hidden></div>
+
+  <section id="start" class="native overlay">
+    <div class="start-card">
+      <h2>Haunted Files</h2>
+      <p>Demons are possessing your files. Save them with your hands:</p>
+      <ol class="how">
+        <li>A possessed file <b>shakes and glows green</b>, with its monster sitting on top.</li>
+        <li><b>Pinch</b> it (thumb and index together) and drop it into the <b>cauldron</b>.</li>
+        <li><b>Point one finger</b> and draw the monster's spell shape in the air.</li>
+      </ol>
+      <div class="start-actions">
+        <button id="btn-camera" class="big">Summon the camera</button>
+        <button id="btn-mouse">Use mouse instead</button>
+      </div>
+      <label class="start-skip"><input type="checkbox" id="chk-skip"> Skip the tutorial</label>
+      <p id="start-status" class="muted"></p>
+      <p class="muted small">Mouse: left drag = pinch, right drag or hold D = draw, hold P = open palm, hold T = thumb up.</p>
+      <button id="btn-settings-start" class="link">Gemma 4 settings</button>
+    </div>
+  </section>
+
+  <dialog id="settings" class="native">
+    <form method="dialog">
+      <h3>Gemma 4 settings</h3>
+      <label>Gemini API key
+        <input id="set-key" type="password" autocomplete="off" placeholder="Paste your key from Google AI Studio">
+      </label>
+      <label>Model
+        <select id="set-model"><option value="">(find models first)</option></select>
+      </label>
+      <div class="row">
+        <button type="button" id="btn-find">Find Gemma models</button>
+        <span id="set-status" class="muted"></span>
+      </div>
+      <p class="muted small">Your key is stored only in this browser (localStorage) and sent only to Google's Gemini API.</p>
+      <details>
+        <summary>Credits</summary>
+        <p class="small">Hand and face tracking: MediaPipe (Apache 2.0). Shape recognition: the $1 Unistroke Recognizer (Wobbrock, Wilson and Li, 2007). Font: Creepster by Sideshow (SIL OFL). Art credits are listed in CREDITS.md.</p>
+      </details>
+      <div class="row end">
+        <button value="cancel">Close</button>
+        <button id="btn-save" value="save" class="big">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
