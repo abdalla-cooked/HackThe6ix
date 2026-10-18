@@ -2,7 +2,9 @@
 
 Demons are possessing the files on your desktop. You grab the possessed files with your bare hands through the webcam and drop them into a bubbling cauldron, which blows the demon out in a burst of green fire. Gemma 4 looks at you through the camera to name each demon, taunt you and judge you at the end of every level.
 
-![Screenshot placeholder](docs/screenshot.png)
+**Play it live:** https://hammerhead-app-oqblv.ondigitalocean.app (hosted on DigitalOcean App Platform; use Chrome and allow the camera, or click "Use mouse instead")
+
+![Haunted Files boss fight](docs/screenshot.png)
 
 ## How to play
 
@@ -90,6 +92,8 @@ Open http://localhost:8000 in Chrome. The camera only works on `localhost` or ov
 To turn on Gemma, click **Settings**, paste a Gemini API key from Google AI Studio, click **Find Gemma models** and save. The key is stored only in your browser's localStorage and is sent only to Google's Gemini API.
 
 ## Deploy on DigitalOcean
+
+The live version runs on App Platform at https://hammerhead-app-oqblv.ondigitalocean.app and redeploys on every push to `main`.
 
 **App Platform (easiest):** create an app from this GitHub repo, choose a **Static Site** component, leave the build command empty and set the output directory to `/`. App Platform serves it over HTTPS, so the camera works.
 
