@@ -1,22 +1,17 @@
-// Possession, corruption, spread, lost files and the cauldron cleanse ritual.
+// Possession, corruption, spread, hopping, lost files, bosses and the cauldron banish.
 import { ASSETS, spriteEl } from './assets.js';
-import { shapeSVG, SHAPE_LABELS, SPELLS, MATCH_THRESHOLD } from './shapes.js';
 import { fx } from './fx.js';
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
-export const CLEANSE_SECONDS = 8;
 const SPREAD_AT = 60;
-const MAX_FAILS = 3;
 
 export class Infection {
-  constructor({ fs, desktop, gemma, bus, ritualEl }) {
-    Object.assign(this, { fs, desktop, gemma, bus, ritualEl });
-    this.cfg = { rate: 0, spreadDelay: 0, shapes: ['line'] };
+  constructor({ fs, desktop, gemma, bus }) {
+    Object.assign(this, { fs, desktop, gemma, bus });
+    this.cfg = { rate: 0, spreadDelay: 0 };
     this.flights = [];
     this.tendrils = [];
-    this.ritual = null;
-    desktop.onCauldronDrop = node => this.startCleanse(node);
-    bus.on('stroke', r => this.onStroke(r));
+    desktop.onCauldronDrop = node => this.banish(node);
     fx.addLayer((ctx, now) => this.drawTendrils(ctx, now));
   }
 
@@ -25,11 +20,10 @@ export class Infection {
     for (const f of this.flights) { f.anim.cancel(); f.el.remove(); }
     this.flights = [];
     this.tendrils = [];
-    this.endRitual();
   }
 
   activeCount() {
-    return this.fs.byState('infected').length + this.fs.byState('cleansing').length + this.flights.length;
+    return this.fs.byState('infected').length + this.flights.length;
   }
 
   candidates(exclude, rootOnly) {
@@ -45,11 +39,8 @@ export class Infection {
       node = pick(c);
     }
     node.reserved = true;
-    if (!monster) {
-      const allowed = ASSETS.monsters.filter(m => this.cfg.shapes.includes(m.spell));
-      monster = pick(allowed.length ? allowed : ASSETS.monsters);
-    }
-    const info = { monster, shape: monster.spell || pick(this.cfg.shapes), name: name || '???', taunt: taunt || '', corruption: 0, spreadStarted: false };
+    if (!monster) monster = this.cfg.tutorial ? ASSETS.monsters[0] : pick(ASSETS.monsters);
+    const info = { monster, name: name || '???', taunt: taunt || '', corruption: 0, spreadStarted: false, hopIn: this.cfg.hop || 0 };
     if (!name) {
       this.gemma.possession(monster, node).then(r => {
         info.name = r.name;
@@ -89,6 +80,7 @@ export class Infection {
     if (node.state !== 'clean') return;
     node.state = 'infected';
     node.inf = info;
+    info.since = performance.now();
     const c = this.desktop.centerOf(node.id);
     if (c) fx.burst(c.x, c.y, { color: '#6dff6d', n: 30 });
     this.fs.emit();
@@ -98,7 +90,6 @@ export class Infection {
 
   announce(node) {
     this.desktop.say(node.id, `${node.inf.name}: "${node.inf.taunt}"`, 5000);
-    if (this.ritual?.node === node) this.ritualEl.querySelector('.ritual-name').textContent = node.inf.name;
   }
 
   nearestClean(node) {
@@ -115,10 +106,23 @@ export class Infection {
   }
 
   update(dt) {
+    // Glowing trail behind demons in flight.
+    for (const f of this.flights) {
+      const r = f.el.getBoundingClientRect();
+      if (r.width) fx.trail(r.left + r.width / 2, r.top + r.height / 2, Math.random() < 0.5 ? '#6dff6d' : '#b48cff');
+    }
     for (const node of this.fs.byState('infected')) {
       const inf = node.inf;
-      inf.corruption = Math.min(100, inf.corruption + this.cfg.rate * dt);
+      const rate = node.boss ? this.cfg.rate * 0.6 : this.cfg.rate;
+      inf.corruption = Math.min(100, inf.corruption + rate * dt);
       this.desktop.setInfection(node);
+      // Possessed files hop away when you are too slow to grab them.
+      // Hovering over a file holds it still, so a hop never snatches it from your hand.
+      const held = this.desktop.drag?.id === node.id || this.desktop.hovered?.dataset.id === String(node.id);
+      if (inf.hopIn > 0 && !held && this.fs.parentOf(node.id)?.id === 0) {
+        inf.hopIn -= dt;
+        if (inf.hopIn <= 0) { this.hop(node); inf.hopIn = this.cfg.hop; }
+      }
       if (inf.corruption >= SPREAD_AT && !inf.spreadStarted && this.cfg.spreadDelay > 0) {
         inf.spreadStarted = true;
         const target = this.nearestClean(node);
@@ -133,26 +137,18 @@ export class Infection {
 
     for (const t of this.tendrils) {
       const src = this.fs.find(t.from), dst = this.fs.find(t.to);
-      if (!src || src.state === 'clean' || src.state === 'cleansing') { t.dead = true; dst.reserved = false; continue; }
+      if (!src || src.state === 'clean') { t.dead = true; dst.reserved = false; continue; }
       t.t += dt / t.dur;
       if (t.t >= 1) {
         t.dead = true;
         dst.reserved = false;
         if (dst.state === 'clean') {
-          this.possess({ node: dst, monster: t.monster, from: this.desktop.centerOf(src.id) });
+          this.possess({ node: dst, monster: t.monster === ASSETS.boss ? pick(ASSETS.monsters) : t.monster, from: this.desktop.centerOf(src.id) });
           this.bus.emit('spread', dst);
         }
       }
     }
     this.tendrils = this.tendrils.filter(t => !t.dead);
-
-    if (this.ritual) {
-      this.ritual.time -= dt;
-      const left = Math.max(0, this.ritual.time / CLEANSE_SECONDS);
-      this.ritualEl.querySelector('.ritual-timer circle').style.strokeDashoffset = `${100 - left * 100}`;
-      this.ritualEl.classList.toggle('hurry', left < 0.35);
-      if (this.ritual.time <= 0) this.failCleanse('timeout');
-    }
   }
 
   lose(node) {
@@ -168,77 +164,61 @@ export class Infection {
     for (const n of this.fs.byState('infected')) n.inf.corruption = Math.max(0, n.inf.corruption - 10);
   }
 
-  // ---- cauldron ritual ----
-  startCleanse(node) {
-    if (node.state !== 'infected') { this.bus.emit('clean-in-cauldron', node); return false; }
-    if (this.ritual) { this.bus.emit('cauldron-busy', node); return false; }
-    node.state = 'cleansing';
-    this.desktop.showInCauldron(node);
-    this.ritual = { node, time: CLEANSE_SECONDS, fails: 0, started: performance.now() };
-    const el = this.ritualEl;
-    el.querySelector('.ritual-demon').replaceChildren(spriteEl(node.inf.monster, 'ritual-sprite'));
-    el.querySelector('.ritual-glyph').innerHTML = shapeSVG(node.inf.shape, 'glyph-svg big', { trace: true });
-    el.querySelector('.ritual-name').textContent = node.inf.name;
-    el.querySelector('.ritual-spell').textContent = `${node.inf.monster.label} demon`;
-    el.querySelector('.ritual-hint').innerHTML =
-      `Point one finger and draw a <b>${SHAPE_LABELS[node.inf.shape].toUpperCase()}</b> (${SPELLS[node.inf.shape]})`;
-    el.hidden = false;
-    el.classList.remove('hurry');
+  hop(node) {
+    const from = this.desktop.centerOf(node.id);
+    node.pos = this.desktop.freeSpot();
     this.fs.emit();
-    this.bus.emit('cleanse-start', node);
+    const to = this.desktop.centerOf(node.id);
+    if (from) fx.burst(from.x, from.y, { color: '#b48cff', n: 18, speed: 160 });
+    if (to) fx.burst(to.x, to.y, { color: '#6dff6d', n: 18, speed: 160 });
+    this.desktop.hopAnim(node.id);
+    this.bus.emit('hop', node);
+  }
+
+  // Dropping a possessed file into the cauldron banishes its demon.
+  banish(node) {
+    if (node.state !== 'infected') { this.bus.emit('clean-in-cauldron', node); return false; }
+    const info = node.inf;
+    const c = this.desktop.cauldronCenter();
+    this.boom(c, info.monster, node.boss ? 1.6 : 1);
+    if (node.boss && --node.bossHp > 0) {
+      // The boss survives the first hits and leaps back out of the brew.
+      info.corruption = Math.max(0, info.corruption - 35);
+      info.hopIn = this.cfg.hop || 5;
+      node.pos = this.desktop.freeSpot();
+      this.fs.emit();
+      this.desktop.hopAnim(node.id);
+      fx.text(c.x, c.y - 230, `${node.bossHp} more hit${node.bossHp > 1 ? 's' : ''}!`, '#ffd36b', 46);
+      this.bus.emit('boss-hit', node);
+      return true;
+    }
+    node.state = 'clean';
+    node.inf = null;
+    fx.text(c.x, c.y - 230, node.boss ? 'BOSS BANISHED!' : 'BANISHED!', '#f3eaff', node.boss ? 76 : 64);
+    this.fs.emit();
+    this.desktop.materialize([node.id]);
+    this.bus.emit('banished', { node, name: info.name, ms: performance.now() - (info.since || performance.now()) });
     return true;
   }
 
-  onStroke(r) {
-    if (!this.ritual) return;
-    const { node } = this.ritual;
-    const want = node.inf.shape;
-    const pct = Math.round(r.score * 100);
-    this.bus.emit('attempt', { node, result: r });
-    if (r.name === want && r.score >= MATCH_THRESHOLD) {
-      fx.text(r.center.x, r.center.y, `${SHAPE_LABELS[r.name]} ${pct}%`, '#6dff6d');
-      this.succeed(r);
-      return;
-    }
-    this.ritual.fails++;
-    fx.text(r.center.x, r.center.y, `${SHAPE_LABELS[r.name]} ${pct}%`, '#ff6b6b');
-    this.bus.emit('wrong-shape', { node, result: r, want, fails: this.ritual.fails });
-    if (this.ritual.fails >= MAX_FAILS) this.failCleanse('fails');
-  }
-
-  succeed(r) {
-    const { node, started } = this.ritual;
-    const info = node.inf;
-    const c = this.desktop.cauldronCenter();
-    fx.burst(c.x, c.y - 120, { color: '#b48cff', n: 60, speed: 380 });
-    fx.burst(c.x, c.y - 120, { color: '#6dff6d', n: 40, speed: 260 });
-    fx.text(c.x, c.y - 200, 'Banished!', '#f3eaff', 44);
-    node.state = 'clean';
-    node.inf = null;
-    this.endRitual();
-    this.fs.emit();
-    this.desktop.materialize([node.id]);
-    this.bus.emit('banished', { node, name: info.name, score: r.score, ms: performance.now() - started });
-  }
-
-  failCleanse(reason) {
-    const { node } = this.ritual;
-    const info = node.inf;
-    node.state = 'clean';
-    node.inf = null;
-    node.health = Math.max(0, node.health - 20);
-    this.endRitual();
-    this.fs.emit();
-    const from = this.desktop.cauldronCenter();
-    const ok = this.possess({ monster: info.monster, name: info.name, taunt: info.taunt, exclude: node.id, from });
-    if (!ok) this.possess({ node, monster: info.monster, name: info.name, taunt: info.taunt, from });
-    this.bus.emit('escape', { node, name: info.name, reason });
-  }
-
-  endRitual() {
-    this.ritual = null;
-    this.ritualEl.hidden = true;
-    this.desktop.showInCauldron(null);
+  // Green fire, shockwave, screen shake and the demon screaming out of the pot.
+  boom(c, monster, scale) {
+    fx.burst(c.x, c.y - 30, { color: '#6dff6d', n: 90 * scale, speed: 520 * scale, size: 7, gravity: 200 });
+    fx.burst(c.x, c.y - 30, { color: '#ff8a2a', n: 50 * scale, speed: 380 * scale, size: 6, gravity: -260, life: 1.2 });
+    fx.burst(c.x, c.y - 30, { color: '#b48cff', n: 40 * scale, speed: 300 * scale, size: 4 });
+    fx.ring(c.x, c.y - 30, '#6dff6d', 260 * scale);
+    fx.flash('rgba(109, 255, 109, 0.35)');
+    fx.shake(this.desktop.el, scale > 1 ? 700 : 450);
+    const el = document.createElement('div');
+    el.className = 'flyer banished';
+    el.append(spriteEl(monster, 'flyer-sprite'));
+    document.body.append(el);
+    const tf = (y, s, r) => `translate(${c.x}px, ${y}px) translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+    el.animate([
+      { transform: tf(c.y, 0.4, 0), opacity: 1 },
+      { transform: tf(c.y - 160, 2.2, -20), opacity: 1, offset: 0.35 },
+      { transform: tf(c.y - 320, 3, 40), opacity: 0 },
+    ], { duration: 1100, easing: 'ease-out' }).finished.then(() => el.remove(), () => el.remove());
   }
 
   drawTendrils(ctx, now) {

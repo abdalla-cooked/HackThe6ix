@@ -1,6 +1,5 @@
 // The mage guide: a speech queue with a typewriter effect.
 import { ASSETS, spriteEl } from './assets.js';
-import { shapeSVG, SHAPE_LABELS, SPELLS } from './shapes.js';
 
 const CPS = 35;
 const MAX_QUEUE = 4;
@@ -11,8 +10,9 @@ export class Mage {
     this.textEl = el.querySelector('.mage-text');
     this.btn = el.querySelector('.mage-btn');
     this.taskEl = el.querySelector('.mage-task span');
-    this.legendEl = el.querySelector('.mage-legend');
+    this.bestiaryEl = el.querySelector('.bestiary');
     el.querySelector('.mage-sprite').append(spriteEl(ASSETS.mage, 'mage-img'));
+    this.renderBestiary();
     el.querySelector('.mage-name').textContent = ASSETS.mage.name;
     this.queue = [];
     this.current = null;
@@ -48,21 +48,23 @@ export class Mage {
     box.classList.add('flash');
   }
 
-  // Spellbook: every shape, the monster it banishes, and whether it is unlocked yet.
-  renderLegend(unlocked) {
-    const rows = ASSETS.monsters.map(m => {
-      const on = unlocked.includes(m.spell);
-      return `<div class="spell ${on ? '' : 'locked'}" data-spell="${m.spell}">
-        ${shapeSVG(m.spell, 'glyph-svg legend-glyph')}
-        <div><b>${SHAPE_LABELS[m.spell]}</b> <span class="spell-name">${SPELLS[m.spell]}</span>
-        <small>${on ? `banishes ${m.emoji} ${m.label}` : 'unlocks in a later level'}</small></div>
-      </div>`;
-    }).join('');
-    this.legendEl.innerHTML = `<h4>Spellbook</h4>${rows}`;
+  // Every monster in the game, dimmed until you have met it.
+  renderBestiary() {
+    this.bestiaryEl.replaceChildren(...[...ASSETS.monsters, ASSETS.boss].map(m => {
+      const cell = document.createElement('div');
+      cell.className = 'beast';
+      cell.dataset.id = m.id;
+      cell.title = m.label;
+      cell.append(spriteEl(m, 'beast-img'));
+      return cell;
+    }));
   }
 
-  highlightSpell(shape) {
-    for (const row of this.legendEl.querySelectorAll('.spell')) row.classList.toggle('active', row.dataset.spell === shape);
+  seen(monster) {
+    const cell = this.bestiaryEl.querySelector(`[data-id="${monster.id}"]`);
+    if (!cell || cell.classList.contains('met')) return;
+    cell.classList.add('met', 'new');
+    setTimeout(() => cell.classList.remove('new'), 1500);
   }
 
   showButton(label) { this.btn.textContent = label; this.btn.hidden = false; }

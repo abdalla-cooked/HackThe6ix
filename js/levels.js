@@ -1,34 +1,35 @@
-// Level table, level state machine, tutorial script, the mage's event lines
-// and the on-screen guide arrow.
+// Level table, level state machine, tutorial script, the mage's event lines,
+// the level-up screen and the on-screen guide arrow.
 import { FILE_POOL, FOLDER_NAMES } from './fs.js';
-import { SHAPE_LABELS, SPELLS } from './shapes.js';
+import { ASSETS } from './assets.js';
 import { fx } from './fx.js';
 
 export const LEVELS = [
-  { name: 'Tutorial', files: 4, monsters: 1, rate: 0, every: 0, spreadDelay: 0, maxLost: 99, shapes: ['line'], tutorial: true },
-  { name: 'Level 1', files: 6, monsters: 3, rate: 4, every: 9, spreadDelay: 6, maxLost: 3, shapes: ['line', 'circle'] },
-  { name: 'Level 2', files: 8, monsters: 5, rate: 5, every: 7, spreadDelay: 5, maxLost: 3, shapes: ['line', 'circle', 'zigzag'] },
-  { name: 'Level 3', files: 10, monsters: 7, rate: 6, every: 6, spreadDelay: 4, maxLost: 3, shapes: ['line', 'circle', 'zigzag', 'triangle'] },
-  { name: 'Level 4', files: 12, monsters: 9, rate: 7, every: 5, spreadDelay: 3, maxLost: 3, shapes: ['line', 'circle', 'zigzag', 'triangle', 'vee'] },
+  { name: 'Tutorial', files: 4, monsters: 1, rate: 0, every: 0, spreadDelay: 0, hop: 0, maxLost: 99, tutorial: true },
+  { name: 'Level 1', files: 6, monsters: 3, rate: 4, every: 8, spreadDelay: 6, hop: 0, maxLost: 3 },
+  { name: 'Level 2', files: 8, monsters: 5, rate: 5, every: 6, spreadDelay: 5, hop: 6, maxLost: 3 },
+  { name: 'Level 3: Boss', files: 8, monsters: 3, rate: 5, every: 7, spreadDelay: 5, hop: 6, maxLost: 3, boss: true },
+  { name: 'Level 4', files: 10, monsters: 7, rate: 6, every: 5, spreadDelay: 4, hop: 4, maxLost: 3 },
 ];
 
 export function levelCfg(n) {
   if (n < LEVELS.length) return LEVELS[n];
   const last = LEVELS[LEVELS.length - 1], k = n - (LEVELS.length - 1);
+  const boss = n % 3 === 0;
   return {
-    ...last, name: `Level ${n}`,
-    files: Math.min(16, last.files + 2 * k), monsters: last.monsters + 2 * k, rate: last.rate + k,
-    every: Math.max(3, last.every - 0.5 * k), spreadDelay: Math.max(2, last.spreadDelay - 0.5 * k),
+    ...last, name: boss ? `Level ${n}: Boss` : `Level ${n}`, boss,
+    files: Math.min(14, last.files + k), monsters: boss ? 4 + k : last.monsters + 2 * k, rate: last.rate + k,
+    every: Math.max(3, last.every - 0.5 * k), spreadDelay: Math.max(2, last.spreadDelay - 0.5 * k), hop: Math.max(2.5, last.hop - 0.3 * k),
   };
 }
 
 const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
-const shapeWord = s => SHAPE_LABELS[s].toUpperCase();
 const PLAY_TASK = 'Drag the shaking green files into the cauldron before they turn into tombstones.';
+const THUMB_TASK = 'Hold a thumbs up for 1 second to start';
 
 export class Levels {
-  constructor({ fs, desktop, infection, mage, gemma, bus, hud }) {
-    Object.assign(this, { fs, desktop, infection, mage, gemma, bus, hud });
+  constructor({ fs, desktop, infection, mage, gemma, bus, hud, overlay }) {
+    Object.assign(this, { fs, desktop, infection, mage, gemma, bus, hud, overlay });
     this.state = 'idle';
     this.n = 0;
     this.bindEvents();
@@ -37,6 +38,7 @@ export class Levels {
 
   get playing() { return this.state === 'playing'; }
   get tutorial() { return !!this.cfg?.tutorial; }
+  get waiting() { return this.state === 'cleared' || this.state === 'failed'; }
 
   start(n) {
     this.n = n;
@@ -45,25 +47,31 @@ export class Levels {
     this.timer = 0;
     this.spawned = 0;
     this.nextAt = 3;
-    this.stats = { level: n, banished: 0, lost: 0, cleanseAttempts: 0, scores: [], fastestCleanseMs: 0, spreadsAllowed: 0 };
+    this.bossNode = null;
+    this.stats = { level: n, banished: 0, lost: 0, hops: 0, fastestCleanseMs: 0, spreadsAllowed: 0, boss: !!this.cfg.boss };
     this.infection.reset(this.cfg);
     this.desktop.closeAll();
     this.fs.reset();
     this.populate();
+    this.hideOverlay();
     this.mage.clear();
     this.mage.hideButton();
-    this.mage.renderLegend(this.cfg.shapes);
-    this.mage.highlightSpell(null);
     if (this.tutorial) {
       this.mage.say('Welcome, apprentice. I am Morwen. A demon is about to jump into one of your files. Watch closely!');
       this.mage.setTask('Watch your files. A demon is coming...');
     } else {
-      const fresh = this.cfg.shapes.filter(s => !levelCfg(n - 1).shapes.includes(s));
-      this.mage.say(`${this.cfg.name}: protect ${this.cfg.files} files from ${this.cfg.monsters} demons. Lose ${this.cfg.maxLost} and we fail.`, { priority: 'high' });
-      for (const s of fresh) this.mage.say(`New spell unlocked: draw a ${shapeWord(s)} (${SPELLS[s]}). Check the spellbook below me.`, { mood: 'proud' });
+      this.mage.say(`${this.cfg.name}: protect ${this.cfg.files} files. Lose ${this.cfg.maxLost} and we fail.`, { priority: 'high' });
+      if (this.cfg.boss) this.mage.say(`The ${ASSETS.boss.label} is coming! He takes 3 trips to the cauldron, and if he turns to stone we lose.`, { mood: 'alarm' });
+      if (this.cfg.hop && !levelCfg(n - 1).hop) this.mage.say('Careful: these demons hop to a new spot if you leave them alone too long.', { mood: 'alarm' });
       this.mage.setTask(PLAY_TASK);
     }
+    this.banner(this.cfg.name, this.cfg.boss ? '#ff7a1a' : '#b48cff');
     this.renderHud();
+  }
+
+  banner(text, color) {
+    const W = this.desktop.width();
+    fx.text(W / 2, innerHeight * 0.38, text, color, 72);
   }
 
   populate() {
@@ -77,6 +85,14 @@ export class Levels {
     });
     this.desktop.render();
     this.desktop.materialize(ids);
+  }
+
+  spawnBoss() {
+    const node = this.fs.add({ name: 'MIMIC.exe', kind: 'boss', boss: true, bossHp: 3, content: 'It bites.' });
+    this.bossNode = node;
+    this.desktop.render();
+    this.desktop.materialize([node.id]);
+    this.infection.possess({ node, monster: ASSETS.boss });
   }
 
   advance() {
@@ -95,46 +111,83 @@ export class Levels {
     if (this.tutorial) {
       // The tutorial demon arrives on its own, on a file in plain sight.
       if (this.spawned < 1 && this.timer >= 1 && this.infection.possess({ rootOnly: true })) this.spawned = 1;
-    } else if (this.spawned < this.cfg.monsters && this.timer >= this.nextAt) {
-      if (this.infection.possess()) this.spawned++;
-      this.nextAt = this.timer + this.cfg.every;
+    } else {
+      if (this.cfg.boss && !this.bossNode && this.timer >= 2) this.spawnBoss();
+      if (this.spawned < this.cfg.monsters && this.timer >= this.nextAt) {
+        if (this.infection.possess()) this.spawned++;
+        this.nextAt = this.timer + this.cfg.every;
+      }
     }
     if (this.stats.lost >= this.cfg.maxLost) return this.fail();
-    if (this.spawned >= this.cfg.monsters && this.infection.activeCount() === 0) this.clear();
+    const bossDone = !this.cfg.boss || (this.bossNode && this.bossNode.state === 'clean');
+    if (this.spawned >= this.cfg.monsters && bossDone && this.infection.activeCount() === 0) this.clear();
   }
 
   async clear() {
     this.state = 'cleared';
-    this.mage.highlightSpell(null);
+    this.waitSince = performance.now() + 1400;
     const s = this.stats;
+    const W = this.desktop.width();
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => fx.burst(W * (0.15 + Math.random() * 0.7), innerHeight * (0.2 + Math.random() * 0.4),
+        { color: ['#ff8a2a', '#b48cff', '#6dff6d'][i % 3], n: 60, speed: 420, gravity: 260, life: 1.4 }), i * 140);
+    }
+    const next = levelCfg(this.n + 1);
+    this.mage.setTask(`${THUMB_TASK} ${next.name}.`);
     if (this.tutorial) {
-      this.mage.say('You banished your first demon! One more trick: demons can hide inside folders. Hold an open palm on a folder to open it, then drag the file out.', { mood: 'proud' });
-      this.mage.say(`Next: ${levelCfg(1).files} files and ${levelCfg(1).monsters} demons. Hold an open palm on the green button when ready.`, { mood: 'proud' });
-      this.mage.setTask('Hold an open palm on "Start level 1" (or pinch it).');
-      this.mage.showButton('Start level 1');
+      this.mage.say('You banished your first demon! Demons can also hide inside folders: hold an open palm on a folder to open it, then drag the file out.', { priority: 'high', mood: 'proud' });
+      this.mage.say(`Now give me a thumbs up and hold it for a second to start ${next.name}.`, { mood: 'proud' });
+      this.showOverlay({ title: 'Tutorial complete!', sub: 'You know the trick: pinch, drag, drop in the cauldron.', next: next.name }, 1400);
       return;
     }
     this.mage.say(`${this.cfg.name} cleared! Let me look at you...`, { priority: 'high', mood: 'proud' });
-    this.mage.setTask('Level cleared! Wait for my verdict, then press the green button.');
-    const avg = s.scores.length ? Math.round(s.scores.reduce((a, b) => a + b, 0) / s.scores.length * 100) : 0;
+    this.showOverlay({
+      title: `${this.cfg.name} cleared!`,
+      sub: `${s.banished} banished, ${s.lost} lost${s.fastestCleanseMs ? `, fastest save ${(s.fastestCleanseMs / 1000).toFixed(1)} s` : ''}`,
+      verdict: 'Morwen is studying you through the camera...',
+      next: next.name,
+    }, 1400);
     const level = this.n;
-    const r = await this.gemma.judge({ ...s, avgShapeScore: avg, fastestCleanseMs: Math.round(s.fastestCleanseMs) });
+    const r = await this.gemma.judge({ ...s, fastestCleanseMs: Math.round(s.fastestCleanseMs) });
     if (this.state !== 'cleared' || this.n !== level) return;
     this.mage.say(`I name you ${r.rank}. ${r.verdict}`, { mood: 'proud' });
-    const next = levelCfg(this.n + 1);
-    this.mage.say(`Next: ${next.files} files and ${next.monsters} demons. Open your palm on the button when ready.`, { mood: 'proud' });
-    this.mage.setTask(`Hold an open palm on "Start ${next.name}" (or pinch it).`);
-    this.mage.showButton(`Start ${next.name}`);
+    this.mage.say(`Thumbs up when you are ready for ${next.name}.`, { mood: 'proud' });
+    this.setVerdict(`<b>${esc(r.rank)}</b>${esc(r.verdict)}`);
   }
 
   fail() {
     this.state = 'failed';
+    this.waitSince = performance.now() + 900;
     this.infection.reset(this.cfg);
-    this.mage.highlightSpell(null);
-    this.mage.say(`Too many files lost. Even I failed my first exorcism. Try ${this.cfg.name} again.`, { priority: 'high', mood: 'alarm' });
-    this.mage.setTask('Hold an open palm on "Retry" (or pinch it).');
-    this.mage.showButton('Retry');
+    const bossLost = this.bossNode?.state === 'lost';
+    this.mage.say(bossLost
+      ? `The ${ASSETS.boss.label} turned to stone and took the desktop with him. Try ${this.cfg.name} again.`
+      : `Too many files lost. Even I failed my first exorcism. Try ${this.cfg.name} again.`, { priority: 'high', mood: 'alarm' });
+    this.mage.setTask(`${THUMB_TASK} again.`);
+    fx.flash('rgba(255, 60, 80, 0.35)', 600);
+    this.showOverlay({ title: 'The demons won', sub: bossLost ? `The ${ASSETS.boss.label} got away.` : `${this.stats.lost} files turned to stone.`, next: 'Retry', fail: true }, 900);
   }
+
+  // ---- level-up screen ----
+  // Shown after a short delay so the last banish or tombstone plays out first.
+  showOverlay({ title, sub, verdict = '', next, fail = false }, delay = 0) {
+    const o = this.overlay, n = this.n;
+    clearTimeout(this.overlayTimer);
+    this.overlayTimer = setTimeout(() => { if (this.waiting && this.n === n) o.el.hidden = false; }, delay);
+    o.el.classList.toggle('fail', fail);
+    o.title.textContent = title;
+    o.sub.textContent = sub;
+    o.btn.textContent = fail ? 'Retry' : `Start ${next}`;
+    o.hint.textContent = fail ? 'Hold a thumbs up for 1 second to try again' : `Hold a thumbs up for 1 second to start ${next}`;
+    this.setVerdict(esc(verdict));
+  }
+
+  setVerdict(html) {
+    this.overlay.verdict.innerHTML = html;
+    this.overlay.verdict.hidden = !html;
+  }
+
+  hideOverlay() { clearTimeout(this.overlayTimer); this.overlay.el.hidden = true; }
 
   renderHud() {
     const { cfg, stats } = this;
@@ -147,7 +200,6 @@ export class Levels {
   // Task line while playing: point at the file that needs saving.
   refreshTask() {
     if (this.state !== 'playing' && this.state !== 'intro') return;
-    if (this.infection.ritual) return;
     const target = this.fs.byState('infected').sort((a, b) => b.inf.corruption - a.inf.corruption)[0];
     if (!target) { this.mage.setTask(this.tutorial ? 'Watch your files. A demon is coming...' : PLAY_TASK); return; }
     const parent = this.fs.parentOf(target.id);
@@ -162,9 +214,12 @@ export class Levels {
     const live = () => this.state === 'playing' || this.state === 'intro';
     bus.on('possess', node => {
       if (!live()) return;
+      this.mage.seen(node.inf.monster);
       const parent = this.fs.parentOf(node.id);
-      if (this.tutorial) {
-        mage.say(`There! A ${node.inf.monster.label} demon jumped into ${node.name}. See it shaking and glowing? Pinch it with your thumb and index finger and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' });
+      if (node.boss) {
+        mage.say(`The ${ASSETS.boss.label} has arrived! Drag him into the cauldron three times.`, { priority: 'high', mood: 'alarm' });
+      } else if (this.tutorial) {
+        mage.say(`There! A ${node.inf.monster.label} jumped into ${node.name}. See it shaking and glowing? Pinch it with your thumb and index finger and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' });
       } else if (parent && parent.id !== 0) {
         mage.say(`A ${node.inf.monster.label} is hiding inside the ${parent.name} folder! Hold an open palm on the folder to open it.`, { mood: 'alarm' });
       } else {
@@ -174,53 +229,38 @@ export class Levels {
     });
     bus.on('drag-start', node => {
       if (this.tutorial && node.state === 'clean' && this.fs.byState('infected').length) {
-        mage.say('Not that one. Grab the shaking green file with the demon sitting on it.', { priority: 'high' });
+        mage.say('Not that one. Grab the shaking green file with the monster sitting on it.', { priority: 'high' });
       }
     });
     bus.on('open-folder', () => this.refreshTask());
     bus.on('moved', () => this.refreshTask());
-    bus.on('cleanse-start', node => {
-      const shape = node.inf.shape;
-      mage.highlightSpell(shape);
-      mage.setTask(`Point one finger and draw a ${shapeWord(shape)} in the air. Follow the glowing guide above the cauldron.`);
-      mage.say(this.tutorial
-        ? `Into the brew! Now point ONE finger (fold the others) and draw a ${shapeWord(shape)} in the air, starting from the orange dot.`
-        : `Into the brew! Draw a ${shapeWord(shape)}, the ${SPELLS[shape]}!`, { priority: 'high', mood: 'alarm' });
-    });
+    bus.on('hop', () => { if (this.stats) this.stats.hops++; this.refreshTask(); });
     bus.on('spread-warn', node => live() && mage.say(`${node.name} is spreading to its neighbor, hurry!`, { mood: 'alarm' }));
     bus.on('spread', () => { if (this.stats) this.stats.spreadsAllowed++; this.refreshTask(); });
     bus.on('lost', node => {
       if (!live()) return;
-      this.stats.lost++;
+      this.stats.lost = node.boss ? this.cfg.maxLost : this.stats.lost + 1;
       this.renderHud();
+      const c = this.desktop.centerOf(node.id);
+      if (c) fx.text(c.x, c.y - 40, 'LOST!', '#ff5c6c', 44);
+      fx.flash('rgba(255, 60, 80, 0.25)');
+      fx.shake(this.desktop.el, 300, 8);
       mage.say(`We lost ${node.name}. It is a tombstone now.`, { priority: 'high', mood: 'alarm' });
       this.refreshTask();
     });
-    bus.on('attempt', () => { if (this.stats) this.stats.cleanseAttempts++; });
-    bus.on('banished', ({ name, score, ms }) => {
-      const s = this.stats;
-      s.banished++;
-      s.scores.push(score);
-      s.fastestCleanseMs = s.fastestCleanseMs ? Math.min(s.fastestCleanseMs, ms) : ms;
-      this.renderHud();
-      mage.highlightSpell(null);
-      mage.say(`Splendid! ${name} is gone.`, { priority: 'high', mood: 'proud' });
+    bus.on('boss-hit', node => {
+      mage.say(`Direct hit! The ${ASSETS.boss.label} jumped back out. ${node.bossHp} more!`, { priority: 'high', mood: 'proud' });
       this.refreshTask();
     });
-    bus.on('wrong-shape', ({ result, want, fails }) => {
-      const msg = result.score < 0.6
-        ? `That did not look like a shape. Draw a ${shapeWord(want)}, slowly, from the orange dot.`
-        : `Close, but that looked like a ${shapeWord(result.name)}. Draw a ${shapeWord(want)}.`;
-      mage.say(fails >= 3 ? 'Too many misses!' : `${msg} (${3 - fails} tries left)`, { priority: 'high', mood: 'alarm' });
-    });
-    bus.on('escape', ({ name, reason }) => {
-      const why = reason === 'timeout' ? 'You ran out of time.' : 'Too many wrong shapes.';
-      mage.highlightSpell(null);
-      mage.say(`${why} ${name} escaped into another file! Grab it again.`, { priority: 'high', mood: 'alarm' });
-      setTimeout(() => this.refreshTask(), 1300);
+    bus.on('banished', ({ node, name, ms }) => {
+      const s = this.stats;
+      s.banished++;
+      s.fastestCleanseMs = s.fastestCleanseMs ? Math.min(s.fastestCleanseMs, ms) : ms;
+      this.renderHud();
+      mage.say(node.boss ? `The ${ASSETS.boss.label} is finished! Magnificent!` : `Splendid! ${name} is gone.`, { priority: 'high', mood: 'proud' });
+      this.refreshTask();
     });
     bus.on('clean-in-cauldron', () => mage.say('That one is clean, do not waste the brew! Grab the shaking green one.', { priority: 'high' }));
-    bus.on('cauldron-busy', () => mage.say('One demon at a time in the cauldron!', { priority: 'high' }));
     bus.on('open-infected', node => mage.say(`Do not open ${node.name}! Pinch it and drag it into the cauldron.`, { priority: 'high', mood: 'alarm' }));
     bus.on('open-lost', node => mage.say(`${node.name} is gone. Rest in peace.`, { priority: 'high' }));
   }
@@ -228,7 +268,7 @@ export class Levels {
   // Pulsing ring on the file to save and a dashed arrow to the cauldron.
   // Shown in the tutorial and level 1, while the player is learning.
   drawGuide(ctx, now) {
-    if (!this.cfg || this.n > 1 || this.state !== 'playing' || this.infection.ritual) return;
+    if (!this.cfg || this.n > 1 || this.state !== 'playing') return;
     const cau = this.desktop.cauldronCenter();
     const pulse = 0.5 + 0.5 * Math.sin(now / 180);
     ctx.save();
@@ -277,6 +317,7 @@ export class Levels {
     ctx.font = '600 16px system-ui, sans-serif';
     ctx.textAlign = 'center';
     const w = ctx.measureText(text).width + 20;
+    x = Math.max(w / 2 + 8, Math.min(this.desktop.width() - w / 2 - 8, x));
     ctx.fillStyle = 'rgba(20, 10, 36, 0.9)';
     ctx.beginPath();
     ctx.roundRect(x - w / 2, y - 18, w, 28, 8);
@@ -284,4 +325,8 @@ export class Levels {
     ctx.fillStyle = '#ffd36b';
     ctx.fillText(text, x, y + 1);
   }
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }

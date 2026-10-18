@@ -80,7 +80,7 @@ export class Tracker {
       this.hand.present = false;
     }
 
-    if (this.faceTask && this.frame++ % 2 === 0) {
+    if (this.faceTask && this.frame++ % 3 === 0) {
       const f = this.faceTask.detectForVideo(v, now);
       const shapes = f.faceBlendshapes?.[0]?.categories;
       if (shapes && f.faceLandmarks?.[0]) {

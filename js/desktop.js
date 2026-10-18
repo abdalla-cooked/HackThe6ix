@@ -1,6 +1,5 @@
 // Renders the haunted desktop: files, folder windows, drag and drop, cauldron.
 import { fileIconEl, spriteEl } from './assets.js';
-import { shapeSVG } from './shapes.js';
 
 const TOP = 80;
 const BOTTOM_RESERVED = 230;
@@ -43,14 +42,14 @@ export class Desktop {
 
   width() { return this.el.clientWidth; }
 
-  // Random free cell for a root-level file, keeping the ritual area above the cauldron clear.
+  // Random free cell for a root-level file, keeping the area above the cauldron clear.
   freeSpot() {
     const W = this.width(), H = innerHeight;
     const cw = 150, ch = 140;
     const taken = this.fs.root.children.filter(n => n.pos).map(n => n.pos);
     const free = [];
     for (let y = TOP; y <= H - BOTTOM_RESERVED - 60; y += ch) {
-      for (let x = 40; x <= W - 140; x += cw) {
+      for (let x = 70; x <= W - 170; x += cw) {
         if (Math.abs(x + 52 - W / 2) < 210 && y > H - 680) continue;
         if (taken.some(p => Math.abs(p.x - x) < cw * 0.7 && Math.abs(p.y - y) < ch * 0.7)) continue;
         free.push({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 20 });
@@ -74,9 +73,9 @@ export class Desktop {
     el.dataset.dwell = 'open';
     el.innerHTML = `${cracksSVG()}
       <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="46" r="40" pathLength="100"/></svg>
-      <div class="glyph"></div><div class="demon"></div>
+      <div class="demon"></div>
       <div class="label"></div><div class="tag">Possessed!</div><div class="say"></div>`;
-    el.prepend(fileIconEl(node.kind));
+    el.prepend(fileIconEl(node.kind, node.name));
     el.dataset.kindShown = node.kind;
     return el;
   }
@@ -84,24 +83,24 @@ export class Desktop {
   sync(node, el) {
     const shownKind = node.state === 'lost' ? 'lost' : node.kind;
     if (el.dataset.kindShown !== shownKind) {
-      el.querySelector('.icon').replaceWith(fileIconEl(shownKind));
+      el.querySelector('.icon').replaceWith(fileIconEl(shownKind, node.name));
       el.dataset.kindShown = shownKind;
     }
     el.querySelector('.label').textContent = node.name;
     el.classList.toggle('folder', node.kind === 'folder');
+    el.classList.toggle('boss', !!node.boss);
     for (const s of ['infected', 'lost']) el.classList.toggle(s, node.state === s);
-    const glyph = el.querySelector('.glyph');
     const demon = el.querySelector('.demon');
+    el.querySelector('.tag').textContent = node.boss ? `Boss: ${node.bossHp} hit${node.bossHp > 1 ? 's' : ''} left` : 'Possessed!';
     if (node.state === 'infected' && node.inf) {
-      if (glyph.dataset.shape !== node.inf.shape) {
-        glyph.innerHTML = shapeSVG(node.inf.shape);
-        glyph.dataset.shape = node.inf.shape;
+      if (demon.dataset.monster !== node.inf.monster.id) {
         demon.replaceChildren(spriteEl(node.inf.monster, 'demon-sprite'));
+        demon.dataset.monster = node.inf.monster.id;
       }
       el.style.setProperty('--inf', (node.inf.corruption / 100).toFixed(3));
     } else {
-      glyph.innerHTML = ''; glyph.dataset.shape = '';
       demon.replaceChildren();
+      demon.dataset.monster = '';
       el.style.setProperty('--inf', '0');
     }
   }
@@ -206,7 +205,7 @@ export class Desktop {
   }
 
   showInCauldron(node) {
-    this.slot.replaceChildren(node ? fileIconEl(node.kind) : '');
+    this.slot.replaceChildren(node ? fileIconEl(node.kind, node.name) : '');
     this.cauldron.classList.toggle('full', !!node);
   }
 
@@ -341,7 +340,7 @@ export class Desktop {
       this.render();
       return;
     }
-    if (t.type === 'folder') {
+    if (t.type === 'folder' && !node.boss) {
       this.fs.move(id, t.id);
       this.bus.emit('moved', node);
     } else {
@@ -349,6 +348,14 @@ export class Desktop {
       node.pos = this.clampPos(s.x - dx, s.y - dy);
     }
     this.render();
+  }
+
+  hopAnim(id) {
+    const el = this.els.get(id);
+    if (!el) return;
+    el.classList.remove('hopped');
+    void el.offsetWidth;
+    el.classList.add('hopped');
   }
 
   bounce(el) {

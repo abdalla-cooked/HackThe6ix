@@ -103,6 +103,7 @@ export class Input {
         : k.has('p') ? 'Open_Palm'
         : k.has('f') ? 'Closed_Fist'
         : k.has('t') ? 'Thumb_Up'
+        : k.has('v') ? 'Victory'
         : 'None';
     }
 

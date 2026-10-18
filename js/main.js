@@ -1,7 +1,6 @@
 // Boot, the main loop, gesture dispatch and the settings dialog.
 import { Tracker } from './tracker.js';
 import { Input } from './input.js';
-import { StrokeCapture, SHAPES, SHAPE_LABELS, shapeSVG } from './shapes.js';
 import { FS } from './fs.js';
 import { Desktop } from './desktop.js';
 import { Infection } from './infection.js';
@@ -12,8 +11,9 @@ import { fx } from './fx.js';
 
 const $ = s => document.querySelector(s);
 const DWELL_MS = 600;
+const NEXT_HOLD_MS = 1000;
 const PAUSE_HOLD_MS = 1200;
-const DEBUG_SHAPES = new URLSearchParams(location.search).get('debug') === 'shapes';
+const TRAIL_COLORS = { Pinch: '#e4d4ff', Open_Palm: '#6dff6d', Thumb_Up: '#ffd36b', Victory: '#9fb8ff' };
 
 const bus = {
   handlers: {},
@@ -29,16 +29,22 @@ const fs = new FS();
 const gemma = new Gemma(video);
 const mage = new Mage($('#mage'));
 const desktop = new Desktop({ el: $('#desktop'), fs, bus });
-const capture = new StrokeCapture();
-const infection = new Infection({ fs, desktop, gemma, bus, ritualEl: $('#ritual') });
+const infection = new Infection({ fs, desktop, gemma, bus });
 const hud = { level: $('#hud-level'), lost: $('#hud-lost'), banished: $('#hud-banished'), skip: $('#skip-tut') };
-const levels = new Levels({ fs, desktop, infection, mage, gemma, bus, hud });
-fx.addLayer((ctx, now) => capture.draw(ctx, now));
+const lu = $('#levelup');
+const overlay = {
+  el: lu, title: lu.querySelector('.lu-title'), sub: lu.querySelector('.lu-sub'), verdict: lu.querySelector('.lu-verdict'),
+  btn: lu.querySelector('.lu-btn'), hint: lu.querySelector('.lu-hint'), thumb: lu.querySelector('.lu-thumb'),
+};
+const levels = new Levels({ fs, desktop, infection, mage, gemma, bus, hud, overlay });
 
 let started = false;
 let paused = false;
 let dwell = { el: null, ms: 0, fired: false };
 let pauseFired = false;
+let nextFired = false;
+let lightningIn = 8;
+let bubbleT = 0;
 const scream = { held: 0, cooldown: 0 };
 
 const actions = {
@@ -47,13 +53,43 @@ const actions = {
   settings: () => openSettings(),
   'skip-tutorial': () => levels.start(1),
   'mage-skip': () => mage.skip(),
-  'mage-next': () => levels.advance(),
+  'mage-next': () => nextLevel(),
 };
 function dispatch(name, el) { actions[name]?.(el); }
 
 function setPaused(p) {
   paused = p;
   $('#pause').hidden = !p;
+}
+
+function nextLevel() {
+  if (!levels.waiting) return;
+  const c = overlay.thumb.getBoundingClientRect();
+  fx.burst(c.left + c.width / 2, c.top + c.height / 2, { color: '#ffd36b', n: 80, speed: 500, gravity: 200 });
+  fx.flash('rgba(255, 211, 107, 0.3)');
+  levels.advance();
+}
+
+// Lightning: a bolt, a double flicker and a small shake.
+function strike() {
+  const W = desktop.width();
+  fx.bolt(W * (0.1 + Math.random() * 0.8), 0, innerHeight * (0.25 + Math.random() * 0.35));
+  $('#lightning').animate([{ opacity: 0 }, { opacity: 0.8 }, { opacity: 0.1 }, { opacity: 0.6 }, { opacity: 0 }], { duration: 450 });
+  fx.shake(desktop.el, 300, 5);
+}
+
+// Bubbles over the brew and embers under the pot.
+function brew(dt, busy) {
+  bubbleT += dt;
+  const step = busy ? 0.015 : 0.04;
+  if (bubbleT < step) return;
+  const c = desktop.cauldronCenter();
+  for (; bubbleT >= step; bubbleT -= step) {
+    fx.spark({ x: c.x + (Math.random() - 0.5) * 120, y: c.y - 6, vx: (Math.random() - 0.5) * 20, vy: -40 - Math.random() * 70,
+      life: 0.9 + Math.random() * 0.6, size: 2 + Math.random() * 4, color: Math.random() < 0.8 ? '#6dff6d' : '#b48cff', gravity: -20 });
+    fx.spark({ x: c.x + (Math.random() - 0.5) * 90, y: c.y + 95, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 60,
+      life: 0.5, size: 2 + Math.random() * 3, color: Math.random() < 0.6 ? '#ff8a2a' : '#ffd36b', gravity: -40 });
+  }
 }
 
 // ---- cursor ----
@@ -113,21 +149,29 @@ function frame(now) {
       dwell = { el: null, ms: 0, fired: false };
     }
 
-    // Thumb up held: pause or resume.
-    if (s.gesture === 'Thumb_Up') {
+    // Thumbs up held for 1 s starts the next level (or retries).
+    if (s.gesture === 'Thumb_Up' && levels.waiting) {
+      // Count only the time held since the level-up screen appeared, so an early thumb does not skip it.
+      const p = Math.max(0, Math.min(1, Math.min(s.gestureMs, now - levels.waitSince) / NEXT_HOLD_MS));
+      if (!nextFired) progress = p;
+      overlay.thumb.style.setProperty('--p', nextFired ? 1 : p);
+      if (p >= 1 && !nextFired) { nextFired = true; nextLevel(); }
+    } else {
+      nextFired = false;
+      overlay.thumb.style.setProperty('--p', 0);
+    }
+
+    // Peace sign held: pause or resume.
+    if (s.gesture === 'Victory') {
       if (!pauseFired) progress = Math.min(1, s.gestureMs / PAUSE_HOLD_MS);
       if (s.gestureMs >= PAUSE_HOLD_MS && !pauseFired) { pauseFired = true; setPaused(!paused); }
     } else {
       pauseFired = false;
     }
 
-    const stroke = capture.update(s, now);
-    if (stroke) {
-      if (DEBUG_SHAPES) showDebugStroke(stroke);
-      else if (!paused) bus.emit('stroke', stroke);
-    }
+    if (Math.hypot(s.vx, s.vy) > 60 || desktop.drag) fx.trail(s.x, s.y, desktop.drag ? '#6dff6d' : TRAIL_COLORS[s.gesture] || '#ff8a2a');
 
-    if (!paused && !DEBUG_SHAPES) {
+    if (!paused) {
       // Scream: mouth open for 1 s knocks every infection back by 10.
       scream.cooldown = Math.max(0, scream.cooldown - dt);
       if (s.face && s.face.jawOpen > 0.5 && scream.cooldown === 0 && levels.playing) {
@@ -145,6 +189,9 @@ function frame(now) {
       infection.update(dt);
       levels.update(dt);
       desktop.updateFolderGlow();
+      if (!levels.waiting) brew(dt, !!desktop.drag && fs.find(desktop.drag.id)?.state === 'infected');
+      lightningIn -= dt;
+      if (lightningIn <= 0) { strike(); lightningIn = 7 + Math.random() * 7; }
     }
     mage.update(dt);
   }
@@ -156,27 +203,10 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-// ---- shape debug mode (?debug=shapes) ----
-function showDebugStroke(r) {
-  const el = $('#debug-shapes');
-  const rows = Object.entries(r.scores).sort((a, b) => b[1] - a[1])
-    .map(([n, sc]) => `<div class="${n === r.name ? 'best' : ''}">${SHAPE_LABELS[n]}: ${(sc * 100).toFixed(0)}%</div>`).join('');
-  el.innerHTML = `<h3>${SHAPE_LABELS[r.name]} ${(r.score * 100).toFixed(0)}%</h3>${rows}`;
-  fx.text(r.center.x, r.center.y, `${SHAPE_LABELS[r.name]} ${(r.score * 100).toFixed(0)}%`, r.score >= 0.78 ? '#6dff6d' : '#ff6b6b');
-}
-
 // ---- start overlay ----
 function begin() {
   $('#start').hidden = true;
   started = true;
-  if (DEBUG_SHAPES) {
-    const el = $('#debug-shapes');
-    el.hidden = false;
-    el.innerHTML = `<h3>Shape debug</h3><p>Point one finger (or right-drag) and draw.</p>
-      <div class="debug-glyphs">${Object.keys(SHAPES).map(n => `<span>${shapeSVG(n)}${SHAPE_LABELS[n]}</span>`).join('')}</div>`;
-    mage.say('Debug mode: draw shapes and watch the scores.');
-    return;
-  }
   levels.start($('#chk-skip').checked ? 1 : 0);
 }
 

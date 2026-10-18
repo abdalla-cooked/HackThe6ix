@@ -10,15 +10,15 @@ const FALLBACK_NAMES = ['Grimbold the Unzipped', 'Lady Corrupta', 'Sir Bitrot', 
   'Mother Murk', 'The Dread Defrag', 'Spooky Sudo', 'Wailing Wendigo'];
 const FALLBACK_TAUNTS = ['Your file is mine now, mortal.', 'I smell fear. And old coffee.', 'Nice room. Shame about your files.',
   'You call that a spell? I call it waving.', 'This file tastes delicious.', 'Your cauldron is cold and so is your heart.',
-  'I have haunted better desktops than this.', 'Draw faster, apprentice.', 'Every byte belongs to the dark now.',
+  'I have haunted better desktops than this.', 'Grab faster, apprentice.', 'Every byte belongs to the dark now.',
   'I will spread like gossip at a seance.', 'Your hands shake. Good.', 'Even your cat would cast better.',
   'I see you squinting at me.', 'Back up your files? Too late.', 'I live here now. Pay rent in souls.'];
 const FALLBACK_RANKS = [
   ['Apprentice of the Third Crypt', 'Your wand hand is shaky but your heart is brave.'],
-  ['Keeper of the Cold Cauldron', 'The files are safe, mostly. Practice your circles.'],
+  ['Keeper of the Cold Cauldron', 'The files are safe, mostly. Move those hands faster.'],
   ['Hexbreaker of the Hollow', 'Clean work. The demons will whisper your name with fear.'],
   ['Grand Exorcist of Folders', 'Few have banished so many so quickly. I am impressed.'],
-  ['Moonlit Spellwright', 'Your shapes were sharp and your nerves were sharper.'],
+  ['Moonlit Spellwright', 'Your pinch was sharp and your nerves were sharper.'],
 ];
 
 function readStore(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } }
@@ -145,8 +145,8 @@ export class Gemma {
   async judge(stats) {
     const text = await this.request(
       `You are Morwen, a wise old mage judging an apprentice exorcist after level ${stats.level}. ` +
-      `Stats: ${stats.banished} demons banished, ${stats.lost} files lost, average spell accuracy ${stats.avgShapeScore}%, ` +
-      `fastest cleanse ${stats.fastestCleanseMs} ms. Look at their photo. Reply in exactly this format:\n` +
+      `Stats: ${stats.banished} demons banished, ${stats.lost} files lost, ${stats.hops} times a demon hopped away, ` +
+      `fastest save ${stats.fastestCleanseMs} ms${stats.boss ? ', and they beat the Mimic King boss' : ''}. Look at their photo. Reply in exactly this format:\n` +
       `RANK: <witch or wizard title, max 6 words>\n` +
       `VERDICT: <max 30 words, warm and spooky, mention something visible in the photo>`, { important: true });
     const rank = tidy(text?.match(/RANK:\s*(.+)/i)?.[1]);

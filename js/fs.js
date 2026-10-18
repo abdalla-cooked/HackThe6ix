@@ -4,7 +4,7 @@ export const FILE_POOL = [
   { name: 'grandmas_potion.brew', kind: 'potion', content: '3 newt eyes, 1 cup of moonlight, stir widdershins. Do NOT drink on Tuesdays.' },
   { name: 'uncle_vlad.coffin', kind: 'tomb', content: 'Do not open before sunset. Do not open after sunset either.' },
   { name: 'moon_photo.png', kind: 'image', content: 'A blurry photo of the full moon. Something is waving from it.' },
-  { name: 'spellbook.pdf', kind: 'book', content: 'Chapter 1: Banishing demons by drawing in the air.\nChapter 2: Getting ink out of robes.' },
+  { name: 'spellbook.pdf', kind: 'book', content: 'Chapter 1: Banishing demons with a cauldron and bare hands.\nChapter 2: Getting ink out of robes.' },
   { name: 'cat_familiar.jpg', kind: 'image', content: 'Mr. Whiskers, 300 years old, still judging you.' },
   { name: 'pumpkin_recipe.txt', kind: 'text', content: 'Carve face. Add candle. Whisper its true name. Serve warm.' },
   { name: 'crypt_keys.zip', kind: 'tomb', content: '13 keys, none of them fit anything.' },

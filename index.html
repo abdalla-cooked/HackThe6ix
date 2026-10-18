@@ -10,27 +10,18 @@
 </head>
 <body>
   <main id="desktop">
-    <div class="moon"></div>
     <div class="fog fog-a"></div>
     <div class="fog fog-b"></div>
+    <div class="fog fog-c"></div>
     <div id="files"></div>
     <div id="windows"></div>
     <div id="cauldron">
       <div class="cauldron-slot"></div>
-      <div class="pot"><span class="bubble b1"></span><span class="bubble b2"></span><span class="bubble b3"></span></div>
+      <div class="pot"><span class="bubble b1"></span><span class="bubble b2"></span><span class="bubble b3"></span><span class="bubble b4"></span></div>
+      <div class="fire"><span></span><span></span><span></span></div>
       <div class="cauldron-label">Cauldron</div>
     </div>
-    <div id="ritual" hidden>
-      <div class="ritual-head">
-        <div class="ritual-demon"></div>
-        <div><div class="ritual-name"></div><div class="ritual-spell"></div></div>
-      </div>
-      <div class="ritual-glyph-wrap">
-        <svg class="ritual-timer" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" pathLength="100"/></svg>
-        <div class="ritual-glyph"></div>
-      </div>
-      <div class="ritual-hint"></div>
-    </div>
+    <div class="torch t1"></div><div class="torch t2"></div><div class="torch t3"></div><div class="torch t4"></div>
   </main>
 
   <header id="hud">
@@ -49,13 +40,15 @@
     <div class="mage-bubble" data-dwell="mage-skip"><span class="mage-text"></span></div>
     <div class="mage-task"><small>Your task</small><span></span></div>
     <button class="mage-btn" data-action="mage-next" data-dwell="mage-next" hidden>Next level</button>
-    <div class="mage-legend"></div>
-    <div class="mage-help">
-      <b>Pinch</b> grab and drag<br>
-      <b>Open palm</b> (hold) open<br>
-      <b>Point</b> draw a shape<br>
-      <b>Thumb up</b> (hold) pause
+    <div class="gestures">
+      <div class="gcard"><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><rect x="17" y="4" width="6" height="18" rx="3" transform="rotate(28 20 22)"/><rect x="6" y="15" width="6" height="14" rx="3" transform="rotate(-50 9 22)"/><rect x="12" y="20" width="18" height="16" rx="6"/><circle cx="12.5" cy="11" r="2.5" class="pop"/></svg></span><div><b>Pinch</b><small>grab and drag a file</small></div></div>
+      <div class="gcard"><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><rect x="10" y="7" width="4.5" height="16" rx="2.2"/><rect x="15.5" y="3" width="4.5" height="19" rx="2.2"/><rect x="21" y="4" width="4.5" height="18" rx="2.2"/><rect x="26.5" y="8" width="4.5" height="15" rx="2.2"/><rect x="3" y="18" width="5" height="12" rx="2.5" transform="rotate(-35 6 24)"/><rect x="9" y="17" width="22" height="19" rx="7"/></svg></span><div><b>Open palm</b><small>hold on a folder to open it</small></div></div>
+      <div class="gcard key"><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><rect x="14" y="3" width="7" height="17" rx="3.5" transform="rotate(-8 17 12)"/><rect x="12" y="16" width="19" height="18" rx="5"/><rect x="5" y="17" width="6" height="17" rx="2"/><path d="M14 22h15M14 27h15" class="crease"/></svg></span><div><b>Thumbs up</b><small>hold 1 s for the next level</small></div></div>
+      <div class="gcard"><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><rect x="12" y="3" width="5" height="18" rx="2.5" transform="rotate(-14 14 16)"/><rect x="21" y="3" width="5" height="18" rx="2.5" transform="rotate(14 24 16)"/><rect x="10" y="18" width="20" height="18" rx="7"/></svg></span><div><b>Peace sign</b><small>hold to pause</small></div></div>
+      <div class="gcard"><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><circle cx="20" cy="20" r="16"/><circle cx="14" cy="15" r="2.5" class="hole"/><circle cx="26" cy="15" r="2.5" class="hole"/><ellipse cx="20" cy="27" rx="5" ry="6" class="hole"/></svg></span><div><b>Scream</b><small>open your mouth 1 s: demons flinch</small></div></div>
     </div>
+    <h4 class="bestiary-title">Bestiary</h4>
+    <div class="bestiary"></div>
   </aside>
 
   <canvas id="fx"></canvas>
@@ -66,9 +59,23 @@
     <div id="gesture-label">mouse</div>
   </div>
 
+  <div id="flash"></div>
+  <div id="lightning"></div>
+
+  <section id="levelup" hidden>
+    <div class="levelup-card">
+      <h2 class="lu-title"></h2>
+      <p class="lu-sub"></p>
+      <p class="lu-verdict" hidden></p>
+      <div class="lu-thumb"><div class="lu-ring"></div><span class="gicon"><svg viewBox="0 0 40 40" class="hand"><rect x="14" y="3" width="7" height="17" rx="3.5" transform="rotate(-8 17 12)"/><rect x="12" y="16" width="19" height="18" rx="5"/><rect x="5" y="17" width="6" height="17" rx="2"/><path d="M14 22h15M14 27h15" class="crease"/></svg></span></div>
+      <p class="lu-hint"></p>
+      <button class="lu-btn" data-action="mage-next" data-dwell="mage-next"></button>
+      <small class="lu-alt">or pinch the button, or press T</small>
+    </div>
+  </section>
+
   <div id="cursor"><div class="cursor-ring"></div><div class="cursor-dot"></div></div>
-  <div id="pause" hidden><div>Paused</div><small>Hold thumb up to resume</small></div>
-  <div id="debug-shapes" hidden></div>
+  <div id="pause" hidden><div>Paused</div><small>Hold a peace sign (or V) to resume</small></div>
 
   <section id="start" class="native overlay">
     <div class="start-card">
@@ -76,8 +83,8 @@
       <p>Demons are possessing your files. Save them with your hands:</p>
       <ol class="how">
         <li>A possessed file <b>shakes and glows green</b>, with its monster sitting on top.</li>
-        <li><b>Pinch</b> it (thumb and index together) and drop it into the <b>cauldron</b>.</li>
-        <li><b>Point one finger</b> and draw the monster's spell shape in the air.</li>
+        <li><b>Pinch</b> it (thumb and index together), drag it and let go over the <b>cauldron</b>. The demon is banished.</li>
+        <li>Clear the level, then hold a <b>thumbs up</b> for one second to start the next one.</li>
       </ol>
       <div class="start-actions">
         <button id="btn-camera" class="big">Summon the camera</button>
@@ -85,7 +92,7 @@
       </div>
       <label class="start-skip"><input type="checkbox" id="chk-skip"> Skip the tutorial</label>
       <p id="start-status" class="muted"></p>
-      <p class="muted small">Mouse: left drag = pinch, right drag or hold D = draw, hold P = open palm, hold T = thumb up.</p>
+      <p class="muted small">Mouse: left drag = pinch, hold P = open palm, hold T = thumbs up, hold V = pause.</p>
       <button id="btn-settings-start" class="link">Gemma 4 settings</button>
     </div>
   </section>
@@ -106,7 +113,7 @@
       <p class="muted small">Your key is stored only in this browser (localStorage) and sent only to Google's Gemini API.</p>
       <details>
         <summary>Credits</summary>
-        <p class="small">Hand and face tracking: MediaPipe (Apache 2.0). Shape recognition: the $1 Unistroke Recognizer (Wobbrock, Wilson and Li, 2007). Font: Creepster by Sideshow (SIL OFL). Art credits are listed in CREDITS.md.</p>
+        <p class="small">Hand and face tracking: MediaPipe (Apache 2.0). Monsters, mage and dungeon: Tiny Dungeon by Kenney (CC0). Font: Creepster by Sideshow (SIL OFL). Full list in CREDITS.md.</p>
       </details>
       <div class="row end">
         <button value="cancel">Close</button>
