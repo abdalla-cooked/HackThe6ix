@@ -77,7 +77,7 @@ The prompts live in [`js/gemma.js`](js/gemma.js).
 - **Kenney Tiny Dungeon** (CC0) for the monsters, the mage, chests, graves and the dungeon background
 - Plain HTML, CSS and JavaScript modules, with no build step and no dependencies to install
 
-The gesture layer is also packaged as an Agent Skill in [`skill/SKILL.md`](skill/SKILL.md) so other projects can reuse it.
+The gesture layer is also packaged as an Agent Skill in [`skills/gesture-exorcism/SKILL.md`](skills/gesture-exorcism/SKILL.md) so other projects can reuse it.
 
 ## Run locally
 
