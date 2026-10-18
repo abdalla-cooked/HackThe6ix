@@ -51,3 +51,10 @@ Use dwell for "click-like" actions: fire once when the same gesture stays on the
 - Skip response parts where `thought === true`. Ask for a fixed format (`NAME: ...` / `TAUNT: ...`) and parse it with a regex, falling back per field.
 - Find model IDs with `GET /v1beta/models` instead of hardcoding them.
 - Run one request at a time with a queue of 3 and a 10 s timeout. Keep canned fallback lines, and never block the game on the model.
+
+## Gestures on real files
+
+- `showDirectoryPicker({ mode: 'read' })` only opens after a real mouse click or key press. A gesture is not a user activation, so keep one plain button for it. Fall back to `<input type="file" webkitdirectory>` where the picker is missing.
+- Read folders lazily with `handle.entries()` when they are opened, and cap each folder (500 entries here) so a huge folder does not stall the frame loop.
+- Keep moves and deletes virtual. A gesture misfire on real files is not undoable, so a "graveyard" with restore is safer than writing to disk.
+- Gesture taps can be shorter than one video frame with a mouse. Latch the press until the next frame reads it.

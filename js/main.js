@@ -6,6 +6,7 @@ import { Desktop } from './desktop.js';
 import { Infection } from './infection.js';
 import { Levels } from './levels.js';
 import { Spells } from './spells.js';
+import { Explorer } from './explorer.js';
 import { Mage } from './mage.js';
 import { Gemma } from './gemma.js';
 import { fx } from './fx.js';
@@ -14,6 +15,7 @@ const $ = s => document.querySelector(s);
 const DWELL_MS = 600;
 const NEXT_HOLD_MS = 1000;
 const PAUSE_HOLD_MS = 1200;
+const BACK_HOLD_MS = 700;
 const TRAIL_COLORS = { Pinch: '#e4d4ff', Open_Palm: '#6dff6d', Thumb_Up: '#ffd36b', Victory: '#9fb8ff', Closed_Fist: '#ff5a1a', Horns: '#ff5a1a' };
 
 const bus = {
@@ -39,9 +41,12 @@ const overlay = {
 };
 const levels = new Levels({ fs, desktop, infection, mage, gemma, bus, hud, overlay });
 const spells = new Spells({ fs, desktop, infection, levels, mage, bus });
+const explorer = new Explorer({ el: $('#explorer'), desktop, mage, gemma });
 
 let started = false;
 let paused = false;
+let mode = 'game';
+let gameTask = '';
 let dwell = { el: null, ms: 0, fired: false };
 let pauseFired = false;
 let nextFired = false;
@@ -56,12 +61,57 @@ const actions = {
   'skip-tutorial': () => levels.start(1),
   'mage-skip': () => mage.skip(),
   'mage-next': () => nextLevel(),
+  'toggle-mode': () => setMode(mode === 'game' ? 'files' : 'game'),
+  'x-up': () => explorer.back(),
+  'x-demo': () => explorer.loadDemo(),
+  'x-graveyard': () => explorer.openGraveyard(),
+  'x-open': el => explorer.activate(el.dataset.xid),
+  'x-crumb': el => { const n = explorer.nodes.get(+el.dataset.xid); if (n) { explorer.closePreview(); explorer.openDir(n); } },
+  'x-close': () => explorer.closePreview(),
+  'x-ask': () => explorer.ask(),
+  'x-pick-hint': () => explorer.pickHint(),
 };
 function dispatch(name, el) { actions[name]?.(el); }
 
 function setPaused(p) {
   paused = p;
   $('#pause').hidden = !p;
+}
+
+// Game and Files app share the screen, the hand and the mage.
+function setMode(m) {
+  if (m === mode) return;
+  mode = m;
+  const files = m === 'files';
+  document.body.dataset.mode = m;
+  $('#explorer').hidden = !files;
+  $('#mode-btn').textContent = files ? 'Back to the game' : 'Files app';
+  $('.cauldron-label').textContent = files ? 'Graveyard' : 'Cauldron';
+  for (const el of document.querySelectorAll('#mage small[data-files]')) {
+    el.dataset.game ??= el.textContent;
+    el.textContent = files ? el.dataset.files : el.dataset.game;
+  }
+  if (files) {
+    gameTask = $('.mage-task span').textContent;
+    setPaused(false);
+    spells.reset();
+    infection.hold();
+    if (explorer.root) {
+      explorer.render();
+      mage.say('Back in the Crypt Explorer.', { priority: 'high' });
+      mage.setTask('Hold an open palm on a chest to open it. Pinch a file to drag it into a chest or the cauldron. Thumbs up goes back.');
+    } else {
+      explorer.loadDemo();
+    }
+  } else {
+    explorer.closePreview();
+    infection.release();
+    if (levels.state === 'idle') startGame();
+    else {
+      mage.say('Back to the hunt! The demons waited for you.', { priority: 'high', mood: 'alarm' });
+      mage.setTask(gameTask);
+    }
+  }
 }
 
 function nextLevel() {
@@ -129,17 +179,20 @@ function frame(now) {
   let progress = 0;
 
   if (started) {
+    const files = mode === 'files';
+    const ui = files ? explorer : desktop;
     const target = document.elementFromPoint(s.x, s.y);
     if (s.pinchStart) {
       const a = target?.closest('[data-action]');
       if (a) dispatch(a.dataset.action, a);
-      else if (!paused) desktop.pinchStart(s, target);
+      else if (!paused || files) ui.pinchStart(s, target);
     }
-    desktop.update(s, target);
-    if (s.pinchEnd) desktop.pinchEnd(s, target);
+    ui.update(s, target);
+    if (s.pinchEnd) ui.pinchEnd(s, target);
+    const dragging = files ? !!explorer.drag?.ghost : !!desktop.drag;
 
     // Open-palm dwell on anything with data-dwell.
-    if (s.gesture === 'Open_Palm' && !desktop.drag && !spells.chanting) {
+    if (s.gesture === 'Open_Palm' && !dragging && !spells.chanting) {
       const t = target?.closest('[data-dwell]') || null;
       if (t !== dwell.el) dwell = { el: t, ms: 0, fired: false };
       else if (t && !dwell.fired) {
@@ -151,29 +204,30 @@ function frame(now) {
       dwell = { el: null, ms: 0, fired: false };
     }
 
-    // Thumbs up held for 1 s starts the next level (or retries).
-    if (s.gesture === 'Thumb_Up' && levels.waiting) {
-      // Count only the time held since the level-up screen appeared, so an early thumb does not skip it.
-      const p = Math.max(0, Math.min(1, Math.min(s.gestureMs, now - levels.waitSince) / NEXT_HOLD_MS));
+    // Thumbs up held: next level (or retry) in the game, back one step in the Files app.
+    if (s.gesture === 'Thumb_Up' && (files || levels.waiting)) {
+      // In the game, count only the time since the level-up screen appeared, so an early thumb does not skip it.
+      const held = files ? s.gestureMs : Math.min(s.gestureMs, now - levels.waitSince);
+      const p = Math.max(0, Math.min(1, held / (files ? BACK_HOLD_MS : NEXT_HOLD_MS)));
       if (!nextFired) progress = p;
       overlay.thumb.style.setProperty('--p', nextFired ? 1 : p);
-      if (p >= 1 && !nextFired) { nextFired = true; nextLevel(); }
+      if (p >= 1 && !nextFired) { nextFired = true; files ? explorer.back() : nextLevel(); }
     } else {
       nextFired = false;
       overlay.thumb.style.setProperty('--p', 0);
     }
 
     // Peace sign held: pause or resume.
-    if (s.gesture === 'Victory') {
+    if (s.gesture === 'Victory' && !files) {
       if (!pauseFired) progress = Math.min(1, s.gestureMs / PAUSE_HOLD_MS);
       if (s.gestureMs >= PAUSE_HOLD_MS && !pauseFired) { pauseFired = true; setPaused(!paused); }
     } else {
       pauseFired = false;
     }
 
-    if (Math.hypot(s.vx, s.vy) > 60 || desktop.drag) fx.trail(s.x, s.y, desktop.drag ? '#6dff6d' : TRAIL_COLORS[s.gesture] || '#ff8a2a');
+    if (Math.hypot(s.vx, s.vy) > 60 || dragging) fx.trail(s.x, s.y, dragging ? '#6dff6d' : TRAIL_COLORS[s.gesture] || '#ff8a2a');
 
-    if (!paused) {
+    if (!paused && !files) {
       // Scream: mouth open for 1 s knocks every infection back by 10.
       scream.cooldown = Math.max(0, scream.cooldown - dt);
       if (s.face && s.face.jawOpen > 0.5 && scream.cooldown === 0 && levels.playing) {
@@ -192,7 +246,9 @@ function frame(now) {
       infection.update(dt);
       levels.update(dt);
       desktop.updateFolderGlow();
-      if (!levels.waiting) brew(dt, !!desktop.drag && fs.find(desktop.drag.id)?.state === 'infected');
+    }
+    if (!paused) {
+      if (files || !levels.waiting) brew(dt, files ? dragging : !!desktop.drag && fs.find(desktop.drag.id)?.state === 'infected');
       lightningIn -= dt;
       if (lightningIn <= 0) { strike(); lightningIn = 7 + Math.random() * 7; }
     }
@@ -207,12 +263,20 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ---- start overlay ----
+const params = new URLSearchParams(location.search);
+if (params.get('mode') === 'files') $('input[name="mode"][value="files"]').checked = true;
+
+function startGame() {
+  // ?level=3 jumps straight to a level, handy for demos.
+  const jump = parseInt(params.get('level'), 10);
+  levels.start(jump >= 0 ? jump : $('#chk-skip').checked ? 1 : 0);
+}
+
 function begin() {
   $('#start').hidden = true;
   started = true;
-  // ?level=3 jumps straight to a level, handy for demos.
-  const jump = parseInt(new URLSearchParams(location.search).get('level'), 10);
-  levels.start(jump >= 0 ? jump : $('#chk-skip').checked ? 1 : 0);
+  if ($('input[name="mode"]:checked').value === 'files') setMode('files');
+  else startGame();
 }
 
 $('#btn-camera').addEventListener('click', async () => {
@@ -273,4 +337,4 @@ dialog.addEventListener('close', () => {
   if (dialog.returnValue === 'save') gemma.save(keyInput.value, modelSelect.value);
 });
 
-window.app = { fs, desktop, infection, levels, spells, mage, gemma, input, tracker, bus };
+window.app = { fs, desktop, infection, levels, spells, explorer, mage, gemma, input, tracker, bus, setMode };

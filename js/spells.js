@@ -55,6 +55,7 @@ export class Spells {
   build() {
     const bar = document.createElement('div');
     bar.id = 'chant';
+    bar.className = 'game-only';
     bar.hidden = true;
     bar.innerHTML = `<div class="chant-row">${SIGNS.map((s, i) =>
       `${i ? '<span class="chant-arrow"></span>' : ''}<div class="sign" data-i="${i}"><span class="sign-ring"></span><span class="gicon">${s.svg}</span><small>${s.label}</small></div>`).join('')}</div>
@@ -74,7 +75,7 @@ export class Spells {
     document.body.append(this.dim, this.frost);
 
     const card = document.createElement('div');
-    card.className = 'gcard spellcard';
+    card.className = 'gcard spellcard game-only';
     card.hidden = true;
     card.innerHTML = `<span class="gicon">${HAND.horns}</span><div><b>Fireball</b><small>Fist, Point, Palm, Horns. Backwards = Freeze</small></div>`;
     document.querySelector('#mage .gestures').append(card);

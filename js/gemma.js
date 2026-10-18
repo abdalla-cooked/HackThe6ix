@@ -76,12 +76,15 @@ export class Gemma {
   }
 
   // Queued request. Resolves to text, or null when skipped or failed.
-  request(prompt, { important = false } = {}) {
+  // Pass `image` (base64 JPEG, or null for none) to send something other than the webcam.
+  request(prompt, { important = false, image } = {}) {
     if (!this.ready) return Promise.resolve(null);
     if (this.busy && this.queue.length >= MAX_QUEUE && !important) return Promise.resolve(null);
-    // Take the snapshot now, at the moment the event happened.
-    const image = this.snapshot();
-    if (!image) prompt += '\n(No webcam photo is available, so invent a spooky detail instead of describing one.)';
+    if (image === undefined) {
+      // Take the snapshot now, at the moment the event happened.
+      image = this.snapshot();
+      if (!image) prompt += '\n(No webcam photo is available, so invent a spooky detail instead of describing one.)';
+    }
     return new Promise(resolve => {
       this.queue.push({ prompt, image, resolve });
       this.pump();

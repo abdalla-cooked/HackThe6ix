@@ -41,11 +41,29 @@ No camera? The whole game works with a mouse: left drag is a pinch, hold P for a
 
 Add `?level=3` to the URL to jump straight to a level, for example to show off the boss and the spells.
 
+## Files app (Crypt Explorer)
+
+The game is a toy desktop. The Files app shows the same gestures working on a real folder from your computer. Pick **Files app** on the start screen, click **Files app** in the top bar, or open the page with `?mode=files`.
+
+| Gesture | What it does in the Files app |
+|---|---|
+| Pinch and drag | Move a file into a chest (folder), onto a folder name in the path bar, or into the cauldron |
+| Quick pinch (tap) | Open a folder or preview a file |
+| Open palm, held 0.6 s | Open the chest or file under your hand |
+| Thumbs up, held 0.7 s | Close the preview, then go up one folder |
+
+Folders show as chests and files get pixel icons by type. Images show a thumbnail. Opening a file previews it in place: images, text and code, PDFs, audio and video. Drop a file in the cauldron and it goes to the **Graveyard**, where a tap restores it to the folder it came from. Pinch **Ask Morwen** in a preview and Gemma 4 reads the file: it sees the image itself, or the first 1,500 characters of a text file, and Morwen describes it in her spooky voice.
+
+**It never changes your disk.** The folder is opened read-only. Moving files and the Graveyard only change what the app shows. Nothing on your computer is renamed, moved, edited or deleted, and reloading the page brings everything back. File contents never leave your browser, except the single file you ask Morwen about, which goes to the Gemini API.
+
+To open a real folder, click **Open a real folder** with the mouse. Browsers only show the folder picker after a real click, so a pinch cannot open it. Chrome and Edge use the File System Access picker and load subfolders as you open them. Other browsers fall back to a plain folder selection dialog. No folder handy? **Demo crypt** loads a built-in folder with text scrolls, a PDF, pixel portraits, a ghost howl recording and a script.
+
 ## How Gemma 4 is used
 
-Gemma 4 runs through the Gemini API, and only on single webcam snapshots, never on video frames. Hand and face tracking need about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
+Gemma 4 runs through the Gemini API, and only on single images (a webcam snapshot, or a file you ask about), never on video frames. Hand and face tracking need about 30 updates a second, so a language model is the wrong tool for that. Gemma reacts to moments instead:
 
 - **Possession.** When a demon lands in a file, the app sends Gemma a mirrored 384x288 snapshot and the file name. Gemma replies with a demon name (often a pun on the file) and a taunt that mentions something it can actually see, like your hoodie or the lamp behind you.
+- **File readings.** In the Files app, Gemma gets the file you are previewing (an image, or the start of a text file) and describes it as Morwen.
 - **Level judgment.** When you clear a level, Gemma gets a snapshot and your stats (banished, lost, how often demons hopped away, spells cast, fastest save, boss beaten) and gives you a witch rank and a verdict, shown on the level-up screen.
 
 The game never waits for Gemma. A demon starts as "???" and its name fills in when the answer arrives. With no key, or if a call fails, the app uses pre-written lines and shows a "backup scrolls" badge.
@@ -96,6 +114,7 @@ js/assets.js      one config for all art, with SVG fallbacks
 js/fs.js          in-memory file system
 js/desktop.js     files, windows, drag and drop, cauldron
 js/infection.js   possession, corruption, spread, hopping, boss, banish blast
+js/explorer.js    Files app: real folder browsing, previews, graveyard
 js/levels.js      level table, tutorial, boss spawn, level-up screen, mage lines
 js/spells.js      hand-sign chains, mana, fireball and freeze
 js/mage.js        speech queue, task box, bestiary

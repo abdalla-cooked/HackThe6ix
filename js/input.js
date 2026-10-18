@@ -60,7 +60,8 @@ export class Input {
     addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
     addEventListener('mousedown', e => {
       if (native(e)) return;
-      if (e.button === 0) this.mouse.left = true;
+      // `pressed` latches a click that starts and ends between two frames.
+      if (e.button === 0) this.mouse.left = this.mouse.pressed = true;
       if (e.button === 2) this.mouse.right = true;
     });
     addEventListener('mouseup', e => {
@@ -112,7 +113,8 @@ export class Input {
       this.pinchOn = false;
       this.p.x = this.tip.x = this.mouse.x;
       this.p.y = this.tip.y = this.mouse.y;
-      pinch = this.mouse.left;
+      pinch = this.mouse.left || this.mouse.pressed;
+      this.mouse.pressed = false;
       const k = this.keys;
       gesture = pinch ? 'Pinch'
         : (this.mouse.right || k.has('d')) ? 'Pointing_Up'

@@ -39,6 +39,10 @@ export class Infection {
     this.desktop.el.classList.remove('frozen');
   }
 
+  // While the Files app is open, demons in flight wait in mid-air.
+  hold() { for (const f of this.flights) f.anim.pause(); }
+  release() { if (!this.frozen) for (const f of this.flights) f.anim.play(); }
+
   // Fireball: demons still in the air burn up before they land.
   burnFlights() {
     for (const f of this.flights) {
